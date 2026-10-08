@@ -1,0 +1,14 @@
+# Python environment and generated files
+**/.venv/
+**/__pycache__/
+*.py[cod]
+
+# Local SQLite database
+backend/*.db
+
+# Next.js generated files
+**/node_modules/
+**/.next/
+
+# Local configuration
+**/.env.local
