@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import PrimaryNavigation from "./components/PrimaryNavigation";
 
 type LessonSummary = {
   id: number;
@@ -118,6 +119,44 @@ async function getJson<T>(url: string): Promise<T> {
   }
 
   return response.json();
+}
+
+function RandomBird() {
+  const [pose, setPose] = useState("center");
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    let active = true;
+    const poses = ["left", "right", "up", "down", "tilt-left", "tilt-right"];
+
+    const moveHead = () => {
+      if (!active) return;
+      setPose(poses[Math.floor(Math.random() * poses.length)]);
+      timer = setTimeout(moveHead, 700 + Math.random() * 2600);
+    };
+
+    timer = setTimeout(moveHead, 500 + Math.random() * 1500);
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, []);
+
+  return (
+    <span className="duo-bird" aria-label="Duo the owl">
+      <span className="duo-bird-body">
+        <span className="duo-bird-wing" />
+        <span className="duo-bird-feet">● ●</span>
+      </span>
+      <span className={`duo-bird-head pose-${pose}`}>
+        <span className="duo-bird-eyes">
+          <i />
+          <i />
+        </span>
+        <span className="duo-bird-beak" />
+      </span>
+    </span>
+  );
 }
 
 export default function Home() {
@@ -428,9 +467,25 @@ export default function Home() {
   const currentSpeechText = currentExercise
     ? getCurrentAnswerForSpeech(currentExercise)
     : "";
+  const dailyQuests = [
+    { id: "quest-10", title: "Earn 10 XP", target: 10, icon: "⚡" },
+    {
+      id: "quest-goal",
+      title: `Reach your ${profile.daily_xp_goal} XP goal`,
+      target: Math.max(profile.daily_xp_goal, 1),
+      icon: "🎯",
+    },
+    {
+      id: "quest-bonus",
+      title: "Earn bonus XP",
+      target: Math.max(profile.daily_xp_goal * 2, 20),
+      icon: "🏅",
+    },
+  ];
 
   return (
     <main className="page-shell">
+      <PrimaryNavigation activePage="learn" />
       <header className="top-bar">
         <a className="brand" href="/">
           <span className="brand-mark">L</span>
@@ -461,6 +516,8 @@ export default function Home() {
       </header>
 
       <section
+        className="learner-stats-bar"
+        id="learner-stats"
         aria-label="Learner statistics"
         style={{
           display: "flex",
@@ -486,7 +543,7 @@ export default function Home() {
       </section>
 
       {lesson ? (
-        <section className="course-header">
+          <section className="course-header" id="lesson">
           <button
             className="lesson-back-button"
             onClick={() => {
@@ -747,7 +804,7 @@ export default function Home() {
         </section>
       ) : (
         <>
-          <section className="course-header">
+          <section className="course-header" id="learn">
             <p className="eyebrow">
               {path.course.source_language} → {path.course.target_language}
             </p>
@@ -806,6 +863,11 @@ export default function Home() {
                                 ? "★"
                                 : "🔒"}
                           </span>
+                          {canOpen && (
+                            <span className="bird-companion">
+                              <RandomBird />
+                            </span>
+                          )}
                           <span className="skill-info">
                             <strong>{skill.title}</strong>
                             <p>
@@ -856,8 +918,56 @@ export default function Home() {
                 <strong>{path.course.units.length}</strong>
               </div>
 
+              <section
+                className="daily-quests"
+                id="daily-quests"
+                aria-labelledby="daily-quests-title"
+              >
+                <div className="quests-heading">
+                  <p className="eyebrow">DAILY QUESTS</p>
+                  <span className="quest-reset">TODAY</span>
+                </div>
+                <h3 id="daily-quests-title">Small goals, big progress</h3>
+                <div className="quest-list">
+                  {dailyQuests.map((quest) => {
+                    const progress = Math.min(profile.today_xp, quest.target);
+                    const completed = progress >= quest.target;
+
+                    return (
+                      <article
+                        className={`quest-card${completed ? " quest-complete" : ""}`}
+                        key={quest.id}
+                      >
+                        <span className="quest-icon" aria-hidden="true">
+                          {quest.icon}
+                        </span>
+                        <div className="quest-details">
+                          <strong>{quest.title}</strong>
+                          <div className="quest-progress-row">
+                            <progress
+                              max={quest.target}
+                              value={progress}
+                              aria-label={`${quest.title} progress`}
+                            />
+                            <span>
+                              {progress}/{quest.target}
+                            </span>
+                          </div>
+                        </div>
+                        <span
+                          className="quest-check"
+                          aria-label={completed ? "Completed" : "In progress"}
+                        >
+                          {completed ? "✓" : "›"}
+                        </span>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+
               <div style={{ marginTop: 24 }}>
-                <p className="eyebrow">ACHIEVEMENTS</p>
+                <p className="eyebrow" id="achievements">ACHIEVEMENTS</p>
                 <div style={{ display: "grid", gap: 10 }}>
                   {(profile.achievements ?? []).map((achievement) => (
                     <article
@@ -895,7 +1005,7 @@ export default function Home() {
               </div>
 
               <div style={{ marginTop: 24 }}>
-                <p className="eyebrow">LEADERBOARD</p>
+                <p className="eyebrow" id="leaderboard">LEADERBOARD</p>
                 <div style={{ display: "grid", gap: 8 }}>
                   {leaderboard.map((entry) => {
                     const isCurrentLearner =
