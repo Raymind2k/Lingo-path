@@ -141,3 +141,23 @@ The first unit’s topic divider sits before a shared sticky colored banner. As 
 ## Mascot spacing and raised node follow-up
 
 Mascot horizontal positions are now selected from the side of the nearest alternating lesson node, keeping the animated artwork away from the row’s text column. Units with two characters place them in separate randomized vertical bands to avoid their animation loops colliding. Character size tiers have been increased for all mascot SVGs, with responsive caps on narrow screens. Circular lesson nodes now have an accent-matched darker lower extrusion, shadow, and top bevel to approximate the raised cylindrical look in the supplied reference. Source changes are in `frontend/app/page.tsx` and `frontend/app/globals.css`; root README updated. Rebuild and inspect the path after any further sizing adjustments.
+
+## Lesson answer-result presentation
+
+All exercise types render one shared fixed bottom result bar after submission. Correct and incorrect styling, the large status mark, response copy, and Continue/Try Again actions are handled from the same `answerFeedback` state. Choice cards were enlarged and their inset art background removed to better match the supplied reference. Final-question completion is deferred until the learner presses Continue so the final answer result is not skipped. Rebuild after any follow-up changes to `frontend/app/page.tsx` or `frontend/app/globals.css`.
+
+## Lesson question sizing follow-up
+
+Every exercise type uses the same available content width on desktop. In particular, typed-answer fields fill the exercise area to match the multiple-choice grid width; matching rows and word-bank controls also use larger text and touch targets. Mobile breakpoints keep those controls readable without forcing desktop dimensions onto narrow screens. These changes are local and uncommitted.
+
+## Lesson typography scale follow-up
+
+The lesson UI uses a larger shared type scale across the topic label, exercise type, question prompt, answer instructions and fields, multiple-choice labels, progress and heart count, audio button, and footer action. Mobile has a separate larger readable scale so all exercise types remain consistent at narrow widths.
+
+The bottom fixed lesson footer received a separate sizing pass: taller row, larger guidance text, and a wider, taller Check button, with mobile-specific dimensions.
+
+Spanish typed-answer checking now accepts the correct wording without vowel accent marks or question/exclamation punctuation, but continues to distinguish `ñ` from `n`. If accent marks were omitted, the API returns the matching canonical answer as `answer_correction` and the green result panel displays the corrected form. Restart the backend to load this validator change.
+
+## XP totals and daily goal update
+
+Completing a lesson awards its configured XP once; the answer response now includes the saved running total, the frontend updates that total immediately, and dashboard GET requests bypass caches. The completion response shows the XP earned. The daily XP goal is 180 XP, increased from 20. A new Alembic migration updates existing `user_stats` rows with the old default; run `alembic upgrade head` from `backend` before restarting the API.

@@ -62,7 +62,7 @@ class UserStats(Base):
     longest_streak: Mapped[int] = mapped_column(default=0, nullable=False)
     hearts: Mapped[int] = mapped_column(default=5, nullable=False)
     max_hearts: Mapped[int] = mapped_column(default=5, nullable=False)
-    daily_xp_goal: Mapped[int] = mapped_column(default=20, nullable=False)
+    daily_xp_goal: Mapped[int] = mapped_column(default=180, nullable=False)
     next_heart_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,

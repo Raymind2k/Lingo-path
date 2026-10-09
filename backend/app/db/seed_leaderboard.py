@@ -63,7 +63,7 @@ def seed_leaderboard() -> None:
             user.stats.longest_streak = learner_data["longest_streak"]
             user.stats.hearts = 5
             user.stats.max_hearts = 5
-            user.stats.daily_xp_goal = 20
+            user.stats.daily_xp_goal = 180
 
         db.commit()
 

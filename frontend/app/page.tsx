@@ -105,9 +105,11 @@ type AnswerFeedback = {
   correct: boolean;
   feedback: string;
   correct_answer: string | null;
+  answer_correction: string | null;
   explanation: string | null;
   hearts_remaining: number;
   xp_awarded: number;
+  total_xp: number;
   lesson_completed: boolean;
   unlocked_skill: number | null;
 };
@@ -116,7 +118,7 @@ const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
 async function getJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
+  const response = await fetch(url, { cache: "no-store" });
 
   if (!response.ok) {
     throw new Error(`Request failed with status ${response.status}.`);
@@ -163,53 +165,6 @@ function RandomBird({ motionClass = "" }: { motionClass?: string }) {
       </span>
     </span>
   );
-}
-
-type MascotPlacement = { x: number; y: number; size: "small" | "medium" | "large" };
-
-function getUnitMascotPlacements(unitId: number, position: number, skillCount: number, hasTopic: boolean): MascotPlacement[] {
-  const artPosition = ((position - 1) % 5 + 5) % 5 + 1;
-  const counts = [1, 2, 1, 2, 1];
-  const count = counts[artPosition - 1];
-  let seed = (Math.abs(unitId) * 48271 + artPosition * 16807) % 2147483647 || 1;
-  const random = () => {
-    seed = (seed * 48271) % 2147483647;
-    return seed / 2147483647;
-  };
-  // When a unit has two characters, put them in separate vertical bands so their idle loops never collide.
-  const firstY = count === 2
-    ? (random() < 0.5 ? 20 + random() * 5 : 75 + random() * 5)
-    : 18 + random() * 64;
-  const sizes: MascotPlacement["size"][] = ["small", "medium", "large"];
-  const firstSizeIndex = (Math.abs(unitId * 7 + artPosition * 11) + Math.floor(random() * 3)) % sizes.length;
-  const getNodeSide = (y: number): "left" | "right" => {
-    const steps = Math.max(skillCount, 1);
-    const rowPosition = hasTopic
-      ? -0.42 + (y / 100) * (steps + 0.28)
-      : 0.03 + (y / 100) * (steps - 0.17);
-    const row = Math.max(0, Math.min(steps - 1, Math.round(rowPosition)));
-    return row % 2 === 0 ? "left" : "right";
-  };
-  const makePlacement = (y: number, size: MascotPlacement["size"]): MascotPlacement => {
-    const side = getNodeSide(y);
-    const edge = size === "large" ? 14 : size === "medium" ? 12 : 10;
-    const x = edge + random() * 2;
-    return {
-      // Keep each mascot in the same outside gutter as its nearest node, away from that row's text column.
-      x: side === "left" ? x : 100 - x,
-      y,
-      size,
-    };
-  };
-  const placements = [makePlacement(firstY, sizes[firstSizeIndex])];
-
-  if (count === 2) {
-    const secondY = firstY < 50 ? 75 + random() * 5 : 20 + random() * 5;
-    const secondSize = sizes[(firstSizeIndex + 2) % sizes.length];
-    placements.push(makePlacement(secondY, secondSize));
-  }
-
-  return placements;
 }
 
 function UnitMascotArtwork({ position }: { position: number }) {
@@ -290,9 +245,9 @@ function UnitMascotArtwork({ position }: { position: number }) {
   );
 }
 
-function UnitMascot({ position, unitId, skillCount, hasTopic }: { position: number; unitId: number; skillCount: number; hasTopic: boolean }) {
+function UnitMascot({ position }: { position: number }) {
   const artPosition = ((position - 1) % 5 + 5) % 5 + 1;
-  const placements = getUnitMascotPlacements(unitId, artPosition, skillCount, hasTopic);
+  const count = artPosition === 2 || artPosition === 4 ? 2 : 1;
   const labels: Record<number, string> = {
     1: "Duo doing a dance",
     2: "A purple-haired learner thinking",
@@ -303,17 +258,16 @@ function UnitMascot({ position, unitId, skillCount, hasTopic }: { position: numb
 
   return (
     <div
-      className={`unit-mascot unit-mascot-${artPosition}`}
+      className={`unit-mascot unit-mascot-${artPosition} unit-mascot-position-${position}`}
       role="img"
       aria-label={`Unit ${position} learning characters: ${labels[artPosition] ?? "friendly mascots"}`}
     >
-      {placements.map((placement, index) => {
+      {Array.from({ length: count }, (_, index) => {
         const characterPosition = index === 0 ? artPosition : artPosition % 5 + 1;
         return (
           <span
-            className={`unit-mascot-character unit-character-${characterPosition} ${index === 0 ? "mascot-primary" : "mascot-secondary"} mascot-size-${placement.size}`}
-            key={`${unitId}-${index}`}
-            style={{ left: `${placement.x}%`, top: `${placement.y}%` }}
+            className={`unit-mascot-character unit-character-${characterPosition} mascot-placement-${index + 1} ${index === 0 ? "mascot-primary" : "mascot-secondary"}`}
+            key={`${position}-${index}`}
             aria-hidden="true"
           >
             <UnitMascotArtwork position={characterPosition} />
@@ -701,6 +655,9 @@ export default function Home() {
 
       const feedback = result as AnswerFeedback;
       setAnswerFeedback(feedback);
+      if (typeof feedback.total_xp === "number") {
+        setProfile((current) => current ? { ...current, total_xp: feedback.total_xp } : current);
+      }
       if (feedback.hearts_remaining <= 0) setOutOfHearts(true);
 
       await refreshDashboard();
@@ -710,7 +667,6 @@ export default function Home() {
         currentExerciseIndex === lesson.exercises.length - 1
       ) {
         setXpEarned(feedback.xp_awarded);
-        setLessonFinished(true);
       }
     } catch (error) {
       setLessonError(
@@ -723,6 +679,11 @@ export default function Home() {
 
   function continueToNextQuestion() {
     if (!lesson || !answerFeedback?.correct) return;
+
+    if (currentExerciseIndex === lesson.exercises.length - 1) {
+      setLessonFinished(true);
+      return;
+    }
 
     setCurrentExerciseIndex((index) => index + 1);
     clearCurrentAnswer();
@@ -994,7 +955,8 @@ export default function Home() {
                     <div className="lesson-response-copy">
                       <span className="lesson-response-mark" aria-hidden="true">{answerFeedback.correct ? "✓" : "✕"}</span>
                       <div className="lesson-response-body">
-                        <strong>{answerFeedback.correct ? "Awesome!" : answerFeedback.feedback}</strong>
+                        <strong>{answerFeedback.correct ? `Awesome!${answerFeedback.xp_awarded > 0 ? ` +${answerFeedback.xp_awarded} XP` : ""}` : answerFeedback.feedback}</strong>
+                        {answerFeedback.correct && answerFeedback.answer_correction && <p className="lesson-answer-correction">Correct form: <b>{answerFeedback.answer_correction}</b></p>}
                         {!answerFeedback.correct && answerFeedback.correct_answer && <p>Correct answer: <b>{answerFeedback.correct_answer}</b></p>}
                         {!answerFeedback.correct && answerFeedback.explanation && <p>{answerFeedback.explanation}</p>}
                         {answerFeedback.correct && (
@@ -1083,6 +1045,8 @@ export default function Home() {
               )}
               {path.course.units.map((unit, unitIndex) => {
                 const completedSkills = unit.skills.filter((skill) => skill.progress.status === "completed").length;
+                const chestUnlocked = completedSkills === unit.skills.length;
+                const chestClaimed = Boolean(claimedChests[unit.id]);
                 return (
                   <article className={`unit-card course-unit course-unit-theme-${((unit.position - 1) % 5) + 1}`} key={unit.id}>
                     {unitIndex > 0 && (
@@ -1093,7 +1057,7 @@ export default function Home() {
                         <span className="unit-progress-copy">{completedSkills}/{unit.skills.length} skills complete</span>
                       </div>
                     )}
-                    <UnitMascot position={unit.position} unitId={unit.id} skillCount={unit.skills.length} hasTopic={unitIndex > 0} />
+                    <UnitMascot position={unit.position} />
                     <div className="skills-list skill-path">
                       {unit.skills.map((skill, index) => {
                         const canOpen = skill.progress.status === "available" || skill.progress.status === "completed";
@@ -1108,7 +1072,11 @@ export default function Home() {
                               type="button"
                             >
                               <span className="skill-icon" aria-hidden="true">
-                                {skill.progress.status === "completed" ? "★" : canOpen ? "★" : "🔒"}
+                                {skill.progress.status === "completed" ? (
+                                  <svg className="skill-complete-check" viewBox="0 0 24 24" focusable="false">
+                                    <path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                ) : canOpen ? "★" : "🔒"}
                               </span>
                             </button>
                             <div className="skill-info">
@@ -1125,19 +1093,58 @@ export default function Home() {
                       })}
                       <div className="unit-chest-wrap">
                         <button
-                          className={`unit-chest${completedSkills === unit.skills.length ? " chest-ready" : ""}${claimedChests[unit.id] ? " chest-claimed" : ""}`}
-                          disabled={completedSkills !== unit.skills.length || Boolean(claimedChests[unit.id])}
+                          aria-label={chestClaimed ? `${unit.title} reward chest opened; 50 gems collected` : chestUnlocked ? `${unit.title} reward chest open; collect 50 gems` : `${unit.title} reward chest locked; complete ${unit.skills.length - completedSkills} more skills`}
+                          className={`unit-chest${chestUnlocked ? " chest-ready" : " chest-locked"}${chestClaimed ? " chest-claimed" : ""}`}
+                          disabled={!chestUnlocked || chestClaimed}
                           onClick={() => openUnitChest(unit.id, unit.title)}
+                          title={chestClaimed ? "Chest opened — 50 gems collected" : chestUnlocked ? "Open to collect 50 gems" : `${completedSkills}/${unit.skills.length} skills complete`}
                           type="button"
                         >
                           <span className="unit-chest-icon" aria-hidden="true">
-                            <svg viewBox="0 0 48 48" focusable="false">
-                              <path d="M7 19h34v23H7z" fill="#b66a00" />
-                              <path d="M4 11h40v12H4z" fill="#ffe02f" />
-                              <path d="M8 24h32v13H8z" fill="#e9a900" />
-                              <path d="M20 20h8v12h-8z" rx="2" fill="#8a4c00" />
-                              <circle cx="24" cy="25" r="2" fill="#ffe02f" />
-                              <path d="M22 26h4v4h-4z" fill="#ffe02f" />
+                            <svg className={chestUnlocked ? "reward-chest-svg chest-open" : "reward-chest-svg chest-closed"} viewBox="0 0 80 80" focusable="false">
+                              <defs>
+                                <linearGradient id={`chest-wood-${unit.id}`} x1="0" x2="1" y1="0" y2="1">
+                                  <stop offset="0" stopColor="#b85b00" />
+                                  <stop offset=".48" stopColor="#8c3e00" />
+                                  <stop offset="1" stopColor="#5f2900" />
+                                </linearGradient>
+                                <linearGradient id={`chest-gold-${unit.id}`} x1="0" x2="0" y1="0" y2="1">
+                                  <stop offset="0" stopColor="#fff275" />
+                                  <stop offset=".42" stopColor="#ffd500" />
+                                  <stop offset="1" stopColor="#e99100" />
+                                </linearGradient>
+                              </defs>
+                              <ellipse cx="40" cy="68" rx="29" ry="5" fill="#563700" opacity=".42" />
+                              <path d="M13 37 21 32h46v29l-7 7H14z" fill="#7a3600" />
+                              <path d="m13 37 8-5v30l-7 6z" fill="#572600" />
+                              <path d="M21 36h39v27H21z" fill={`url(#chest-wood-${unit.id})`} />
+                              <path d="M24 41h33v16H24z" fill="#713000" opacity=".9" />
+                              <path d="M26 44h28M26 54h28" stroke="#c36a12" strokeWidth="2" opacity=".55" />
+                              <path d="M14 57h8v10h-8zM58 57h8v10h-8z" fill="#f5a900" />
+                              <path d="M11 32 18 20q2-4 6-4h32q4 0 6 4l7 12v11H11z" fill="#ad5600" />
+                              {chestUnlocked && (
+                                <g className="chest-treasure">
+                                  <path d="M20 32h40v5H20z" fill="#fff275" />
+                                  <path d="m28 32 4-8 4 8zm14 0 4-8 4 8z" fill="#ffe33d" />
+                                  <path d="M27 28 32 21l5 7-5 5zm16 0 5-7 5 7-5 5z" fill="#39b9ff" />
+                                </g>
+                              )}
+                              <g className={`chest-lid${chestUnlocked ? " chest-lid-open" : ""}`}>
+                                <path d="M11 31 18 19q2-4 6-4h32q4 0 6 4l7 12-7 5H18z" fill={`url(#chest-gold-${unit.id})`} />
+                                <path d="m11 31 7 5v9l-7-4z" fill="#cc7900" />
+                                <path d="M18 36h44v8H18z" fill="#ffe52e" />
+                                <path d="M62 36 69 31v10l-7 3z" fill="#d98900" />
+                                <path d="M20 20q1-2 4-2h31q3 0 4 2l5 9H15z" fill="#fff06a" opacity=".7" />
+                              </g>
+                              {!chestUnlocked && (
+                                <g className="chest-lock">
+                                  <path d="M36 43v-3a4 4 0 0 1 8 0v3" fill="none" stroke="#9aaab0" strokeWidth="3" strokeLinecap="round" />
+                                  <rect x="33" y="42" width="14" height="12" rx="2" fill="#71848c" />
+                                  <circle cx="40" cy="47" r="1.6" fill="#26343a" />
+                                  <path d="M40 48v2" stroke="#26343a" strokeWidth="1.5" strokeLinecap="round" />
+                                </g>
+                              )}
+                              {chestUnlocked && <path d="M22 63h36" stroke="#ffe47a" strokeWidth="2" opacity=".8" />}
                             </svg>
                           </span>
                           <span><strong>{claimedChests[unit.id] ? "Chest opened" : "Unit reward chest"}</strong><small>{claimedChests[unit.id] ? "50 gems collected" : completedSkills === unit.skills.length ? "Open to collect 50 gems" : `${completedSkills}/${unit.skills.length} skills complete`}</small></span>

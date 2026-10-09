@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+import unicodedata
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -62,8 +63,36 @@ def refresh_hearts(stats: UserStats, now: datetime) -> None:
 
 
 def normalize_answer(value: str) -> str:
-    """Ignore letter case and surrounding whitespace when comparing answers."""
-    return value.strip().casefold()
+    """Compare wording without requiring accent marks or punctuation."""
+    return _normalize_answer_text(value, ignore_diacritics=True)
+
+
+def normalize_answer_with_diacritics(value: str) -> str:
+    """Normalize case, punctuation, and spacing while preserving accents."""
+    return _normalize_answer_text(value, ignore_diacritics=False)
+
+
+def _normalize_answer_text(value: str, *, ignore_diacritics: bool) -> str:
+    decomposed = unicodedata.normalize("NFD", value.casefold())
+    normalized: list[str] = []
+
+    for character in decomposed:
+        category = unicodedata.category(character)
+        if category.startswith("M"):
+            # Keep the tilde that makes n distinct from ñ; ignore vowel accents.
+            if not ignore_diacritics or (
+                character == "\u0303" and normalized and normalized[-1] == "n"
+            ):
+                normalized.append(character)
+            continue
+        if character.isspace():
+            normalized.append(" ")
+        elif category.startswith("P") and character not in {"=", "|"}:
+            normalized.append(" ")
+        else:
+            normalized.append(character)
+
+    return " ".join("".join(normalized).split())
 
 
 @router.get("/{lesson_id}")
@@ -201,9 +230,21 @@ def submit_answer(
             detail="This exercise has no configured correct answer",
         )
 
-    is_correct = any(
-        normalize_answer(answer) == normalize_answer(correct)
-        for correct in correct_answers
+    matched_answer = next(
+        (
+            correct
+            for correct in correct_answers
+            if normalize_answer(answer) == normalize_answer(correct)
+        ),
+        None,
+    )
+    is_correct = matched_answer is not None
+    answer_correction = (
+        matched_answer
+        if is_correct
+        and normalize_answer_with_diacritics(answer)
+        != normalize_answer_with_diacritics(matched_answer)
+        else None
     )
 
     attempt = ExerciseAttempt(
@@ -225,9 +266,11 @@ def submit_answer(
             "correct": False,
             "feedback": "Not quite. Try again.",
             "correct_answer": correct_answers[0],
+            "answer_correction": None,
             "explanation": exercise.explanation,
             "hearts_remaining": user.stats.hearts,
             "xp_awarded": 0,
+            "total_xp": user.stats.total_xp,
             "lesson_completed": False,
             "unlocked_skill": None,
         }
@@ -369,10 +412,12 @@ def submit_answer(
     return {
         "correct": True,
         "feedback": "Correct!",
-        "correct_answer": correct_answers[0],
+        "correct_answer": matched_answer,
+        "answer_correction": answer_correction,
         "explanation": exercise.explanation,
         "hearts_remaining": user.stats.hearts,
         "xp_awarded": xp_awarded,
+        "total_xp": user.stats.total_xp,
         "lesson_completed": lesson_is_completed,
         "unlocked_skill": unlocked_skill,
     }

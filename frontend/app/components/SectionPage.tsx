@@ -72,7 +72,7 @@ export default function SectionPage({ section }: { section: Exclude<AppSection, 
   }
 
   const xp = profile?.today_xp ?? 0;
-  const goal = profile?.daily_xp_goal ?? 20;
+  const goal = profile?.daily_xp_goal ?? 180;
   const goalProgress = Math.min(100, goal ? xp / goal * 100 : 0);
   const availableLessons = (path?.course.units ?? []).flatMap((unit) => unit.skills)
     .filter((skill) => skill.progress.status !== "locked")

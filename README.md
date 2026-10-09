@@ -130,3 +130,19 @@ The Learn path shows the unit topic on a thin divider before the colored unit ba
 ## Mascot and lesson-node polish
 
 Animated unit characters now use the nearest lesson row to choose an outer gutter, keeping them clear of the alternating skill-label columns while they move. Two-character units use separated randomized vertical bands to keep their idle animations from colliding. All three character size tiers are larger, with responsive sizes for narrow screens. Lesson nodes use a brighter top bevel and a darker, accent-matched lower rim and shadow to give the circles more raised depth.
+
+## Lesson answer results
+
+Every exercise type uses the same fixed bottom answer-result bar for correct and incorrect responses. The answer choices and success panel are sized to match the supplied reference more closely. On the final question, the correct-answer result remains visible until the learner selects Continue; only then does the lesson-complete screen open.
+
+## Consistent lesson question sizing
+
+Typed-answer, matching, word-bank, and multiple-choice exercises share the same responsive lesson content width. Typed-answer fields now fill the exercise area instead of staying in a narrower capped column, and supporting instructions, labels, word chips, and matching controls use larger desktop sizing. Mobile layouts retain compact responsive controls.
+
+Lesson typography now scales up across the full exercise flow: topic and exercise labels, prompts, answer labels and values, choice text, progress and hearts, audio controls, and the footer action. Mobile keeps its own readable type scale.
+
+The fixed lesson footer has also been enlarged, including its guidance text, Check button, and vertical spacing, so the action remains legible and easy to reach.
+
+Spanish answer validation ignores missing vowel accents and surrounding punctuation while preserving meaningful letters such as `ñ`. If the submitted wording is correct but its accent marks differ, the answer is accepted and the correct accented form is shown in the success feedback.
+
+Lesson XP is awarded once when a learner completes a lesson; the result displays the award, and the learner's total is refreshed from the API without using a cached profile response. The daily XP goal is 180 XP. Existing databases need `alembic upgrade head` from the `backend` directory to update their saved goal.
