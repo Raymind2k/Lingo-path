@@ -167,7 +167,7 @@ function RandomBird({ motionClass = "" }: { motionClass?: string }) {
 
 type MascotPlacement = { x: number; y: number; size: "small" | "medium" | "large" };
 
-function getUnitMascotPlacements(unitId: number, position: number): MascotPlacement[] {
+function getUnitMascotPlacements(unitId: number, position: number, skillCount: number, hasTopic: boolean): MascotPlacement[] {
   const artPosition = ((position - 1) % 5 + 5) % 5 + 1;
   const counts = [1, 2, 1, 2, 1];
   const count = counts[artPosition - 1];
@@ -176,21 +176,37 @@ function getUnitMascotPlacements(unitId: number, position: number): MascotPlacem
     seed = (seed * 48271) % 2147483647;
     return seed / 2147483647;
   };
-  const firstSide = random() < 0.5 ? "left" : "right";
-  const firstY = 18 + random() * 64;
+  // When a unit has two characters, put them in separate vertical bands so their idle loops never collide.
+  const firstY = count === 2
+    ? (random() < 0.5 ? 20 + random() * 5 : 75 + random() * 5)
+    : 18 + random() * 64;
   const sizes: MascotPlacement["size"][] = ["small", "medium", "large"];
   const firstSizeIndex = (Math.abs(unitId * 7 + artPosition * 11) + Math.floor(random() * 3)) % sizes.length;
-  const makePlacement = (side: "left" | "right", y: number, size: MascotPlacement["size"]): MascotPlacement => ({
-    x: side === "left" ? 25 + random() * 4 : 75 + random() * 4,
-    y,
-    size,
-  });
-  const placements = [makePlacement(firstSide, firstY, sizes[firstSizeIndex])];
+  const getNodeSide = (y: number): "left" | "right" => {
+    const steps = Math.max(skillCount, 1);
+    const rowPosition = hasTopic
+      ? -0.42 + (y / 100) * (steps + 0.28)
+      : 0.03 + (y / 100) * (steps - 0.17);
+    const row = Math.max(0, Math.min(steps - 1, Math.round(rowPosition)));
+    return row % 2 === 0 ? "left" : "right";
+  };
+  const makePlacement = (y: number, size: MascotPlacement["size"]): MascotPlacement => {
+    const side = getNodeSide(y);
+    const edge = size === "large" ? 14 : size === "medium" ? 12 : 10;
+    const x = edge + random() * 2;
+    return {
+      // Keep each mascot in the same outside gutter as its nearest node, away from that row's text column.
+      x: side === "left" ? x : 100 - x,
+      y,
+      size,
+    };
+  };
+  const placements = [makePlacement(firstY, sizes[firstSizeIndex])];
 
   if (count === 2) {
-    const secondY = firstY < 50 ? 66 + random() * 14 : 18 + random() * 14;
+    const secondY = firstY < 50 ? 75 + random() * 5 : 20 + random() * 5;
     const secondSize = sizes[(firstSizeIndex + 2) % sizes.length];
-    placements.push(makePlacement(firstSide === "left" ? "right" : "left", secondY, secondSize));
+    placements.push(makePlacement(secondY, secondSize));
   }
 
   return placements;
@@ -274,9 +290,9 @@ function UnitMascotArtwork({ position }: { position: number }) {
   );
 }
 
-function UnitMascot({ position, unitId }: { position: number; unitId: number }) {
+function UnitMascot({ position, unitId, skillCount, hasTopic }: { position: number; unitId: number; skillCount: number; hasTopic: boolean }) {
   const artPosition = ((position - 1) % 5 + 5) % 5 + 1;
-  const placements = getUnitMascotPlacements(unitId, artPosition);
+  const placements = getUnitMascotPlacements(unitId, artPosition, skillCount, hasTopic);
   const labels: Record<number, string> = {
     1: "Duo doing a dance",
     2: "A purple-haired learner thinking",
@@ -1077,7 +1093,7 @@ export default function Home() {
                         <span className="unit-progress-copy">{completedSkills}/{unit.skills.length} skills complete</span>
                       </div>
                     )}
-                    <UnitMascot position={unit.position} unitId={unit.id} />
+                    <UnitMascot position={unit.position} unitId={unit.id} skillCount={unit.skills.length} hasTopic={unitIndex > 0} />
                     <div className="skills-list skill-path">
                       {unit.skills.map((skill, index) => {
                         const canOpen = skill.progress.status === "available" || skill.progress.status === "completed";

@@ -126,3 +126,7 @@ The full-page desktop path now uses larger circular lesson nodes, completion/sta
 ## Scroll-aware unit title
 
 The Learn path shows the unit topic on a thin divider before the colored unit banner. One shared banner stays pinned while the learner scrolls through the path. When the next unit’s topic divider reaches the bottom edge of that banner, its title, unit number, and theme color switch together; scrolling upward switches back to the previous unit. This keeps the title visible above the learning path without stacking multiple sticky banners.
+
+## Mascot and lesson-node polish
+
+Animated unit characters now use the nearest lesson row to choose an outer gutter, keeping them clear of the alternating skill-label columns while they move. Two-character units use separated randomized vertical bands to keep their idle animations from colliding. All three character size tiers are larger, with responsive sizes for narrow screens. Lesson nodes use a brighter top bevel and a darker, accent-matched lower rim and shadow to give the circles more raised depth.

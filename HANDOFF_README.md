@@ -1,6 +1,6 @@
 # Lingo Path - Chat Handoff
 
-Last updated: 2026-10-09 (scroll-aware unit title handoff)
+Last updated: 2026-10-09 (mascot spacing and raised lesson nodes)
 
 This file is a working handoff for continuing the Lingo Path project in another chat. Read it together with the root `README.md`, then inspect the current working tree before editing anything. Preserve any user changes already present in the checkout.
 
@@ -57,6 +57,7 @@ The user cares strongly about the UI feeling like Duolingo rather than a generic
 
 - Branch: `main`. The pre-handoff desktop path/mascot changes were committed as `5067877` (`Scale desktop learning path and mascots`) and pushed to `origin/main` before the scroll-aware unit-title implementation, as requested.
 - The scroll-aware sticky title handoff is the newest learning-path change. Check `git status --short --branch` and `git log -5 --oneline` before continuing to see its current commit state.
+- The latest mascot/node polish, made after commit `1e0c797`, moves mascots into the outer gutter beside the node side of their nearest row, separates two-character units into distinct vertical bands, enlarges all character tiers, and adds a bright bevel plus darker accent-matched extrusion to lesson nodes. Check the Git status/log for its commit state.
 - Preserve all intentional work. Do not reset, checkout over, or replace it with code copied from an older chat excerpt. Inspect `git diff` first if the working tree is not clean.
 - The title-handoff implementation passed `git diff --check` and the frontend production build (`npm run build`). `npm run lint` previously reported existing `react-hooks/set-state-in-effect` and Next.js anchor-navigation violations in `page.tsx` and `SectionPage.tsx`; the production build succeeds. Live browser screenshot inspection was blocked by the browser access policy, so do not claim it was visually checked in a live browser. Avoid submitting lesson answers during visual inspection because that changes demo learner progress.
 
@@ -136,3 +137,7 @@ The full Learn page was compared again against the focused unit screenshot. Desk
 ## Scroll-aware unit title handoff
 
 The first unit’s topic divider sits before a shared sticky colored banner. As a later unit topic divider reaches just below the banner, the banner switches to that unit’s number, title, and color. The same threshold works while scrolling upward. Implementation is in `frontend/app/page.tsx` and `frontend/app/globals.css`; the root README now documents the behavior. The production build completed successfully after the change.
+
+## Mascot spacing and raised node follow-up
+
+Mascot horizontal positions are now selected from the side of the nearest alternating lesson node, keeping the animated artwork away from the row’s text column. Units with two characters place them in separate randomized vertical bands to avoid their animation loops colliding. Character size tiers have been increased for all mascot SVGs, with responsive caps on narrow screens. Circular lesson nodes now have an accent-matched darker lower extrusion, shadow, and top bevel to approximate the raised cylindrical look in the supplied reference. Source changes are in `frontend/app/page.tsx` and `frontend/app/globals.css`; root README updated. Rebuild and inspect the path after any further sizing adjustments.
