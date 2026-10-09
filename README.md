@@ -4,11 +4,11 @@ Lingo Path is a full-stack language-learning app inspired by Duolingo. It recrea
 
 ## Features
 
-- **Learning path:** Five seeded units with 23 skills, lesson nodes, locked/available/completed states, crowns, mascot animations, and reward chests.
-- **Interactive lessons:** Multiple choice, typed translation, word bank, matching, and fill-in-the-blank exercises, with answer feedback and lesson progress.
+- **Learning path:** Five seeded units with 23 skills, lesson nodes, locked/available/completed states, star markers on completed skills, crowns, reward chests, and rotating green, pink, teal, orange, and blue unit themes, with each path section labeled by its unit topic between divider lines. Unit paths sit directly on the dark page surface, with subtle dividers between units.
+- **Interactive lessons:** A focused lesson player with multiple choice, typed translation, word bank, matching, and fill-in-the-blank exercises. Correct answers highlight green, advance progress, and show Duolingo-style feedback with session-only difficulty/report controls; incorrect answers show the correct solution and explanation, deduct a heart, and allow a retry.
 - **Progress and rewards:** XP, daily goals and quests, streaks, hearts with timed regeneration and refill, achievements, and saved learner progress.
 - **Separate app sections:** Learn, Practice, Leaderboards, Quests, Shop, Profile, and More, using shared navigation.
-- **Responsive interface:** Desktop sidebar and learning dashboard, compact phone navigation, dark theme support and a saved light/dark preference.
+- **Responsive interface:** Viewport-scaled desktop sidebar, learning path, and right rail; a wide lesson canvas with large illustrated answer choices and a full-width Duolingo-style response tray; compact phone navigation; seeded mascot placement with deliberately contrasting sizes and character-specific dance, sway, bounce, and explorer animations; the dancing bird keeps its head and body aligned; dark theme support with a saved light/dark preference.
 - **Demo leaderboard:** Seeded sample learners make the leaderboard usable without multiple real accounts.
 
 ## Project status and demo limitations

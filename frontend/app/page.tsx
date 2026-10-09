@@ -163,17 +163,40 @@ function RandomBird({ motionClass = "" }: { motionClass?: string }) {
   );
 }
 
-function UnitMascot({ position }: { position: number }) {
-  const labels: Record<number, string> = {
-    1: "Duo doing a dance",
-    2: "A purple-haired learner thinking",
-    3: "A gardener with buzzing bees",
-    4: "An orange fox explorer with a magnifying glass",
-    5: "A pink-hooded dancer holding a ball",
-  };
+type MascotPlacement = { x: number; y: number; size: "small" | "medium" | "large" };
 
+function getUnitMascotPlacements(unitId: number, position: number): MascotPlacement[] {
+  const artPosition = ((position - 1) % 5 + 5) % 5 + 1;
+  const counts = [1, 2, 1, 2, 1];
+  const count = counts[artPosition - 1];
+  let seed = (Math.abs(unitId) * 48271 + artPosition * 16807) % 2147483647 || 1;
+  const random = () => {
+    seed = (seed * 48271) % 2147483647;
+    return seed / 2147483647;
+  };
+  const firstSide = random() < 0.5 ? "left" : "right";
+  const firstY = 18 + random() * 64;
+  const sizes: MascotPlacement["size"][] = ["small", "medium", "large"];
+  const firstSizeIndex = (Math.abs(unitId * 7 + artPosition * 11) + Math.floor(random() * 3)) % sizes.length;
+  const makePlacement = (side: "left" | "right", y: number, size: MascotPlacement["size"]): MascotPlacement => ({
+    x: side === "left" ? 10 + random() * 7 : 83 + random() * 7,
+    y,
+    size,
+  });
+  const placements = [makePlacement(firstSide, firstY, sizes[firstSizeIndex])];
+
+  if (count === 2) {
+    const secondY = firstY < 50 ? 66 + random() * 14 : 18 + random() * 14;
+    const secondSize = sizes[(firstSizeIndex + 2) % sizes.length];
+    placements.push(makePlacement(firstSide === "left" ? "right" : "left", secondY, secondSize));
+  }
+
+  return placements;
+}
+
+function UnitMascotArtwork({ position }: { position: number }) {
   return (
-    <div className={`unit-mascot unit-mascot-${position}`} role="img" aria-label={labels[position] ?? "A cheerful course mascot"}>
+    <>
       {position === 1 ? <RandomBird motionClass="unit-one-dance" /> : null}
       {position === 2 ? (
         <svg className="unit-mascot-art" viewBox="0 0 120 100" aria-hidden="true">
@@ -245,8 +268,70 @@ function UnitMascot({ position }: { position: number }) {
           <g className="dance-ball"><circle cx="104" cy="69" r="12" fill="#a05cff" /><path d="M94 67q10-8 20 0m-11-10q8 12 0 24" fill="none" stroke="#d8b7ff" strokeWidth="3" /></g>
         </svg>
       ) : null}
+    </>
+  );
+}
+
+function UnitMascot({ position, unitId }: { position: number; unitId: number }) {
+  const artPosition = ((position - 1) % 5 + 5) % 5 + 1;
+  const placements = getUnitMascotPlacements(unitId, artPosition);
+  const labels: Record<number, string> = {
+    1: "Duo doing a dance",
+    2: "A purple-haired learner thinking",
+    3: "A gardener with buzzing bees",
+    4: "An orange fox explorer with a magnifying glass",
+    5: "A pink-hooded dancer holding a ball",
+  };
+
+  return (
+    <div
+      className={`unit-mascot unit-mascot-${artPosition}`}
+      role="img"
+      aria-label={`Unit ${position} learning characters: ${labels[artPosition] ?? "friendly mascots"}`}
+    >
+      {placements.map((placement, index) => {
+        const characterPosition = index === 0 ? artPosition : artPosition % 5 + 1;
+        return (
+          <span
+            className={`unit-mascot-character unit-character-${characterPosition} ${index === 0 ? "mascot-primary" : "mascot-secondary"} mascot-size-${placement.size}`}
+            key={`${unitId}-${index}`}
+            style={{ left: `${placement.x}%`, top: `${placement.y}%` }}
+            aria-hidden="true"
+          >
+            <UnitMascotArtwork position={characterPosition} />
+          </span>
+        );
+      })}
     </div>
   );
+}
+
+function getExerciseLabel(type: string): string {
+  const labels: Record<string, string> = {
+    multiple_choice: "NEW WORD",
+    translate: "TRANSLATE",
+    word_bank: "BUILD THE SENTENCE",
+    fill_blank: "COMPLETE THE WORD",
+    matching: "MATCH PAIRS",
+  };
+  return labels[type] ?? type.replaceAll("_", " ").toUpperCase();
+}
+
+function getChoiceIllustration(choice: string): string {
+  const value = choice.toLocaleLowerCase();
+  if (/panader|bakery|bread|pan$/.test(value)) return "🥐";
+  if (/francia|france|francés/.test(value)) return "🇫🇷";
+  if (/méxico|mexico/.test(value)) return "🇲🇽";
+  if (/me llamo|my name|ana/.test(value)) return "🧑‍🎓";
+  if (/hola|hello|buenos|greet/.test(value)) return "👋";
+  if (/hasta luego|adiós|goodbye/.test(value)) return "👋";
+  if (/por favor|please/.test(value)) return "🙏";
+  if (/gracias|thank/.test(value)) return "💛";
+  if (/café|cafe|coffee/.test(value)) return "☕";
+  if (/agua|water/.test(value)) return "💧";
+  if (/libro|book/.test(value)) return "📚";
+  if (/familia|family/.test(value)) return "👨‍👩‍👧";
+  return "✨";
 }
 
 export default function Home() {
@@ -278,6 +363,7 @@ export default function Home() {
   const [typedAnswer, setTypedAnswer] = useState("");
   const [answerFeedback, setAnswerFeedback] =
     useState<AnswerFeedback | null>(null);
+  const [lessonReaction, setLessonReaction] = useState<string | null>(null);
 
   const refreshDashboard = useCallback(async () => {
     const [pathData, profileData, leaderboardData] = await Promise.all([
@@ -376,6 +462,7 @@ export default function Home() {
     setMatchingAnswers({});
     setTypedAnswer("");
     setAnswerFeedback(null);
+    setLessonReaction(null);
     setLessonError(null);
   }
 
@@ -622,6 +709,13 @@ export default function Home() {
   const currentSpeechText = currentExercise
     ? getCurrentAnswerForSpeech(currentExercise)
     : "";
+  const canCheckAnswer = currentExercise?.exercise_type === "word_bank"
+    ? selectedWordIndexes.length > 0
+    : currentExercise?.exercise_type === "matching"
+      ? currentPairs.length > 0 && currentPairs.every((pair) => Boolean(matchingAnswers[pair.left]))
+      : currentChoices.length > 0
+        ? Boolean(selectedChoice)
+        : Boolean(typedAnswer.trim());
   const dailyQuests = profile.daily_quests ?? [];
 
   return (
@@ -688,19 +782,7 @@ export default function Home() {
       </section>
 
       {lesson ? (
-          <section className="course-header" id="lesson">
-          <button
-            className="lesson-back-button"
-            onClick={() => {
-              setLesson(null);
-              setLessonError(null);
-              setLessonFinished(false);
-            }}
-            type="button"
-          >
-            ← Back to learning path
-          </button>
-
+        <section className="lesson-screen" id="lesson">
           {lessonFinished ? (
             <div className="celebration-backdrop">
               <section className="celebration-modal" role="dialog" aria-modal="true" aria-labelledby="lesson-complete-title">
@@ -713,223 +795,175 @@ export default function Home() {
             </div>
           ) : currentExercise ? (
             <>
-              <p className="eyebrow">
-                QUESTION {currentExerciseIndex + 1} OF {lesson.exercises.length}
-              </p>
-              <div className="lesson-progress-wrap">
-                <progress aria-label="Lesson progress" max={lesson.exercises.length} value={currentExerciseIndex + (answerFeedback?.correct ? 1 : 0)} />
-                <span>{currentExerciseIndex + (answerFeedback?.correct ? 1 : 0)} / {lesson.exercises.length}</span>
-              </div>
-              <h1>{lesson.title}</h1>
-              <p>{currentExercise.prompt}</p>
+              <header className="lesson-topbar">
+                <button
+                  aria-label="Exit lesson and return to learning path"
+                  className="lesson-close-button"
+                  onClick={() => { setLesson(null); setLessonError(null); setLessonFinished(false); }}
+                  type="button"
+                >
+                  ×
+                </button>
+                <div className="lesson-progress-wrap">
+                  <progress aria-label="Lesson progress" max={lesson.exercises.length} value={currentExerciseIndex + (answerFeedback?.correct ? 1 : 0)} />
+                  <span className="lesson-progress-count">{currentExerciseIndex + (answerFeedback?.correct ? 1 : 0)}/{lesson.exercises.length}</span>
+                </div>
+                <span className="lesson-heart-count" aria-label={`${profile.hearts} hearts remaining`}><span aria-hidden="true">❤️</span> {profile.hearts}</span>
+              </header>
 
-              {lessonError && (
-                <section className="message-card error-card">
-                  <p>{lessonError}</p>
-                </section>
-              )}
+              <main className="lesson-stage">
+                <div className="lesson-question">
+                  <p className="lesson-context">{lesson.title}</p>
+                  <p className="eyebrow lesson-exercise-type">{getExerciseLabel(currentExercise.exercise_type)}</p>
+                  <h1>{currentExercise.prompt}</h1>
+                </div>
 
-              <div className="lesson-exercises">
-                <article className="unit-card">
-                  <p className="unit-number">
-                    {currentExercise.exercise_type.replaceAll("_", " ")}
-                  </p>
+                {lessonError && (
+                  <section className="message-card error-card lesson-inline-error" role="alert">
+                    <p>{lessonError}</p>
+                  </section>
+                )}
 
-                  {currentExercise.exercise_type === "word_bank" ? (
-                    <div style={{ marginTop: 20 }}>
-                      <p style={{ color: "#60728a", fontSize: 14 }}>
-                        Tap the words in order. Tap a selected word to remove
-                        it.
-                      </p>
-
-                      <div
-                        aria-label="Your answer"
-                        className="exercise-choices"
-                        style={{
-                          minHeight: 52,
-                          padding: 10,
-                          border: "2px dashed #cbd5e1",
-                          borderRadius: 12,
-                        }}
-                      >
-                        {selectedWordIndexes.map((wordIndex, position) => (
-                          <button
-                            className="exercise-choice exercise-choice-selected"
-                            disabled={answerFeedback?.correct}
-                            key={`${wordIndex}-${position}`}
-                            onClick={() =>
-                              setSelectedWordIndexes((previous) =>
-                                previous.filter(
-                                  (_, index) => index !== position,
-                                ),
-                              )
-                            }
-                            type="button"
-                          >
-                            {currentWords[wordIndex]}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="exercise-choices" aria-label="Word bank">
-                        {currentWords.map((word, index) => {
-                          const isSelected =
-                            selectedWordIndexes.includes(index);
-
-                          return (
+                <div className="lesson-exercises">
+                  <article className={`exercise-card exercise-${currentExercise.exercise_type}`}>
+                    {currentExercise.exercise_type === "word_bank" ? (
+                      <>
+                        <p className="exercise-instruction">Tap the words in order. Tap a word above to remove it.</p>
+                        <div aria-label="Your answer" className="exercise-choices exercise-answer-bank">
+                          {selectedWordIndexes.map((wordIndex, position) => (
                             <button
-                              className="exercise-choice"
-                              disabled={isSelected || answerFeedback?.correct}
-                              key={`${word}-${index}`}
-                              onClick={() =>
-                                setSelectedWordIndexes((previous) => [
-                                  ...previous,
-                                  index,
-                                ])
-                              }
+                              className="exercise-choice word-chip word-chip-selected"
+                              disabled={Boolean(answerFeedback) || submitting}
+                              key={`${wordIndex}-${position}`}
+                              onClick={() => setSelectedWordIndexes((previous) => previous.filter((_, index) => index !== position))}
                               type="button"
                             >
-                              {word}
+                              {currentWords[wordIndex]}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="exercise-choices word-bank" aria-label="Word bank">
+                          {currentWords.map((word, index) => {
+                            const isSelected = selectedWordIndexes.includes(index);
+                            return (
+                              <button
+                                className="exercise-choice word-chip"
+                                disabled={isSelected || Boolean(answerFeedback) || submitting}
+                                key={`${word}-${index}`}
+                                onClick={() => setSelectedWordIndexes((previous) => [...previous, index])}
+                                type="button"
+                              >
+                                {word}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </>
+                    ) : currentExercise.exercise_type === "matching" ? (
+                      <div className="matching-list">
+                        {currentPairs.map((pair) => (
+                          <label className="matching-row" key={pair.left}>
+                            <span>{pair.left}</span>
+                            <select
+                              className="exercise-input"
+                              disabled={Boolean(answerFeedback) || submitting}
+                              onChange={(event) => setMatchingAnswers((previous) => ({ ...previous, [pair.left]: event.target.value }))}
+                              value={matchingAnswers[pair.left] ?? ""}
+                            >
+                              <option value="">Choose a match</option>
+                              {currentMatchingOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+                            </select>
+                          </label>
+                        ))}
+                      </div>
+                    ) : currentChoices.length > 0 ? (
+                      <div className="exercise-choices exercise-choice-grid">
+                        {currentChoices.map((choice, index) => {
+                          const selected = selectedChoice === choice;
+                          const isCorrectChoice = Boolean(answerFeedback && choice === answerFeedback.correct_answer);
+                          const isIncorrectChoice = Boolean(answerFeedback && selected && !answerFeedback.correct);
+                          return (
+                            <button
+                              aria-pressed={selected}
+                              className={`exercise-choice choice-card${selected ? " exercise-choice-selected" : ""}${isCorrectChoice ? " exercise-choice-correct" : ""}${isIncorrectChoice ? " exercise-choice-incorrect" : ""}`}
+                              disabled={Boolean(answerFeedback) || submitting}
+                              key={choice}
+                              onClick={() => setSelectedChoice(choice)}
+                              type="button"
+                            >
+                              <span className="exercise-choice-art" aria-hidden="true">{getChoiceIllustration(choice)}</span>
+                              <span className="exercise-choice-copy">
+                                <span>{choice}</span>
+                                <kbd>{index + 1}</kbd>
+                              </span>
                             </button>
                           );
                         })}
                       </div>
-                    </div>
-                  ) : currentExercise.exercise_type === "matching" ? (
-                    <div style={{ display: "grid", gap: 12, marginTop: 20 }}>
-                      {currentPairs.map((pair) => (
-                        <label
-                          key={pair.left}
-                          style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr",
-                            alignItems: "center",
-                            gap: 12,
-                          }}
-                        >
-                          <span
-                            style={{
-                              padding: 12,
-                              border: "1px solid #e2e8f0",
-                              borderRadius: 10,
-                              background: "#f8fafc",
-                              fontWeight: 700,
-                            }}
-                          >
-                            {pair.left}
-                          </span>
-                          <select
-                            className="exercise-input"
-                            disabled={answerFeedback?.correct}
-                            onChange={(event) =>
-                              setMatchingAnswers((previous) => ({
-                                ...previous,
-                                [pair.left]: event.target.value,
-                              }))
-                            }
-                            value={matchingAnswers[pair.left] ?? ""}
-                          >
-                            <option value="">Choose a match</option>
-                            {currentMatchingOptions.map((option) => (
-                              <option key={option} value={option}>
-                                {option}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                      ))}
-                    </div>
-                  ) : currentChoices.length > 0 ? (
-                    <div className="exercise-choices">
-                      {currentChoices.map((choice) => (
-                        <button
-                          className={`exercise-choice ${
-                            selectedChoice === choice
-                              ? "exercise-choice-selected"
-                              : ""
-                          }`}
-                          disabled={answerFeedback?.correct}
-                          key={choice}
-                          onClick={() => setSelectedChoice(choice)}
-                          type="button"
-                        >
-                          {choice}
-                        </button>
-                      ))}
-                    </div>
-                  ) : (
-                    <input
-                      className="exercise-input"
-                      disabled={answerFeedback?.correct}
-                      onChange={(event) => setTypedAnswer(event.target.value)}
-                      placeholder="Type your answer"
-                      value={typedAnswer}
-                    />
-                  )}
+                    ) : (
+                      <label className="typed-answer-wrap">
+                        <span>Your answer</span>
+                        <input
+                          aria-label="Type your answer"
+                          className="exercise-input"
+                          disabled={Boolean(answerFeedback) || submitting}
+                          onChange={(event) => setTypedAnswer(event.target.value)}
+                          onKeyDown={(event) => { if (event.key === "Enter" && canCheckAnswer && !submitting) void submitAnswer(); }}
+                          placeholder="Type your answer"
+                          value={typedAnswer}
+                        />
+                      </label>
+                    )}
 
-                  {currentSpeechText.trim() && (
-                    <button
-                      className="lesson-back-button"
-                      onClick={() =>
-                        speakText(
-                          currentSpeechText,
-                          path.course.target_language,
-                        )
-                      }
-                      style={{ marginTop: 16 }}
-                      type="button"
-                    >
-                      🔊 Listen to my answer
-                    </button>
-                  )}
-
-                  <button
-                    disabled={submitting || answerFeedback?.correct}
-                    onClick={submitAnswer}
-                    style={{
-                      marginTop: 16,
-                      padding: "12px 18px",
-                      border: 0,
-                      borderRadius: 10,
-                      background: "#172b4d",
-                      color: "white",
-                      cursor: submitting ? "wait" : "pointer",
-                      font: "inherit",
-                      fontWeight: 700,
-                    }}
-                    type="button"
-                  >
-                    {submitting ? "Checking…" : "Check answer"}
-                  </button>
-
-                  {answerFeedback && (
-                    <div
-                      aria-live="polite"
-                      className={`feedback-panel ${answerFeedback.correct ? "feedback-correct" : "feedback-incorrect"}`}
-                    >
-                      <strong>{answerFeedback.feedback}</strong>
-                      {!answerFeedback.correct && (
-                        <p>Correct answer: {answerFeedback.correct_answer}</p>
-                      )}
-                      {answerFeedback.explanation && (
-                        <p>{answerFeedback.explanation}</p>
-                      )}
-                    </div>
-                  )}
-
-                  {answerFeedback?.correct &&
-                    currentExerciseIndex < lesson.exercises.length - 1 && (
-                      <button
-                        className="lesson-back-button"
-                        onClick={continueToNextQuestion}
-                        style={{ marginTop: 16 }}
-                        type="button"
-                      >
-                        Continue
+                    {currentSpeechText.trim() && (
+                      <button className="lesson-audio-button" onClick={() => speakText(currentSpeechText, path.course.target_language)} type="button">
+                        🔊 Listen to my answer
                       </button>
                     )}
-                </article>
-              </div>
+                  </article>
+                </div>
+              </main>
+
+              {answerFeedback ? (
+                <div className={`lesson-response ${answerFeedback.correct ? "lesson-response-correct" : "lesson-response-incorrect"}`} aria-live="polite" aria-atomic="true">
+                  <div className="lesson-response-inner">
+                    <div className="lesson-response-copy">
+                      <span className="lesson-response-mark" aria-hidden="true">{answerFeedback.correct ? "✓" : "✕"}</span>
+                      <div className="lesson-response-body">
+                        <strong>{answerFeedback.correct ? "Awesome!" : answerFeedback.feedback}</strong>
+                        {!answerFeedback.correct && answerFeedback.correct_answer && <p>Correct answer: <b>{answerFeedback.correct_answer}</b></p>}
+                        {!answerFeedback.correct && answerFeedback.explanation && <p>{answerFeedback.explanation}</p>}
+                        {answerFeedback.correct && (
+                          <div className="lesson-response-feedback">
+                            <div className="lesson-response-reactions" aria-label="Rate this question">
+                              <button aria-pressed={lessonReaction === "easy"} className={lessonReaction === "easy" ? "reaction-selected" : ""} onClick={() => setLessonReaction("easy")} type="button">TOO EASY</button>
+                              <button aria-pressed={lessonReaction === "difficult"} className={lessonReaction === "difficult" ? "reaction-selected" : ""} onClick={() => setLessonReaction("difficult")} type="button">TOO DIFFICULT</button>
+                              <button aria-pressed={lessonReaction === "report"} className={lessonReaction === "report" ? "reaction-selected" : ""} onClick={() => setLessonReaction("report")} type="button">REPORT</button>
+                            </div>
+                            {lessonReaction && <p className="lesson-response-note" aria-live="polite">Feedback noted for this session.</p>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      className={`lesson-response-action ${answerFeedback.correct ? "response-action-correct" : "response-action-retry"}`}
+                      onClick={answerFeedback.correct ? continueToNextQuestion : clearCurrentAnswer}
+                      type="button"
+                    >
+                      {answerFeedback.correct ? "CONTINUE" : "TRY AGAIN"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <footer className="lesson-footer">
+                  <div className="lesson-footer-inner">
+                    <span className="lesson-footer-hint">Choose the best answer to continue</span>
+                    <button className="lesson-check-button" disabled={!canCheckAnswer || submitting} onClick={submitAnswer} type="button">
+                      {submitting ? "CHECKING…" : "CHECK"}
+                    </button>
+                  </div>
+                </footer>
+              )}
             </>
           ) : (
             <section className="message-card">
@@ -964,7 +998,7 @@ export default function Home() {
               {path.course.units.map((unit) => {
                 const completedSkills = unit.skills.filter((skill) => skill.progress.status === "completed").length;
                 return (
-                  <article className="unit-card course-unit" key={unit.id}>
+                  <article className={`unit-card course-unit course-unit-theme-${((unit.position - 1) % 5) + 1}`} key={unit.id}>
                     <header className="unit-banner">
                       <div>
                         <p className="unit-number">SECTION 1 · UNIT {unit.position}</p>
@@ -974,10 +1008,12 @@ export default function Home() {
                       <span className="unit-banner-stamp" aria-hidden="true">{String(unit.position).padStart(2, "0")}</span>
                     </header>
                     <div className="unit-subheading">
-                      <strong>Learning path</strong>
-                      <span>{completedSkills}/{unit.skills.length} skills complete</span>
+                      <div className="unit-topic-divider" aria-label={`Unit topic: ${unit.title}`}>
+                        <span>{unit.description ?? unit.title}</span>
+                      </div>
+                      <span className="unit-progress-copy">{completedSkills}/{unit.skills.length} skills complete</span>
                     </div>
-                    <UnitMascot position={unit.position} />
+                    <UnitMascot position={unit.position} unitId={unit.id} />
                     <div className="skills-list skill-path">
                       {unit.skills.map((skill, index) => {
                         const canOpen = skill.progress.status === "available" || skill.progress.status === "completed";
@@ -992,7 +1028,7 @@ export default function Home() {
                               type="button"
                             >
                               <span className="skill-icon" aria-hidden="true">
-                                {skill.progress.status === "completed" ? "✓" : canOpen ? "★" : "🔒"}
+                                {skill.progress.status === "completed" ? "★" : canOpen ? "★" : "🔒"}
                               </span>
                             </button>
                             <div className="skill-info">
@@ -1069,7 +1105,7 @@ export default function Home() {
                             <span>{progress}/{quest.target}</span>
                           </div>
                         </div>
-                        <span className="quest-check" aria-label={completed ? "Completed" : "In progress"}>{completed ? "✓" : "›"}</span>
+                        <span className="quest-check" aria-label={completed ? "Completed" : "In progress"}>{completed ? "★" : "›"}</span>
                       </article>
                     );
                   })}
