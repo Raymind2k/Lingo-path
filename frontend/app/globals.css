@@ -1104,7 +1104,9 @@ a {
   --page: #131f24; --soft-surface: #1b2b32; --available-surface: #243b2a;
   --completed-surface: #203b2a; --green: #58cc02; --green-dark: #8be34b;
 }
-body { font-family: "Nunito", "Trebuchet MS", system-ui, sans-serif; }
+body { font-family: var(--font-nunito), "Nunito", "Trebuchet MS", system-ui, sans-serif; font-synthesis: none; }
+button, input, select, textarea { font: inherit; }
+h1, h2, h3, h4, h5, h6 { font-family: inherit; font-weight: 900; letter-spacing: -.02em; }
 .page-shell { max-width: 1920px; grid-template-columns: 250px minmax(500px, 760px) 360px; column-gap: clamp(28px, 4vw, 74px); }
 .primary-nav { border-color: var(--line); background: var(--page); }
 .nav-item { transition: background .18s ease, border-color .18s ease, color .18s ease; }
@@ -1698,3 +1700,39 @@ body { font-family: "Nunito", "Trebuchet MS", system-ui, sans-serif; }
   content: "";
   transform: translateX(-50%);
 }
+/* Scale the full-page learning path to the focused-unit reference on desktop. */
+@media (min-width: 1441px) {
+  .skill-step { min-height: clamp(148px, 8.2vw, 168px); }
+  .skill-path .skill-card.skill-node {
+    width: clamp(120px, 6vw, 132px) !important;
+    height: clamp(120px, 6vw, 132px);
+    min-height: clamp(120px, 6vw, 132px);
+    border-width: 7px;
+  }
+  .skill-path .skill-icon { font-size: clamp(46px, 2.4vw, 56px); }
+  .skill-info > strong { font-size: clamp(20px, 1.15vw, 24px); }
+  .skill-info .skill-progress-copy,
+  .skill-info .lesson-label { font-size: clamp(16px, .85vw, 18px); }
+  .skill-path .status-label {
+    top: calc(50% + clamp(68px, 3.5vw, 76px));
+    width: clamp(120px, 6vw, 132px);
+    font-size: clamp(11px, .62vw, 13px);
+  }
+  .unit-mascot-character .duo-bird-scale {
+    display: grid;
+    width: 68px;
+    height: 72px;
+    place-items: center;
+    transform-origin: center bottom;
+  }
+  .unit-mascot-character.mascot-size-small .duo-bird-scale { transform: scale(1.6); }
+  .unit-mascot-character.mascot-size-medium .duo-bird-scale { transform: scale(1.9); }
+  .unit-mascot-character.mascot-size-large .duo-bird-scale { transform: scale(2.2); }
+  .unit-mascot-1 .mascot-primary .duo-bird-scale { transform: scale(2); }
+}
+/* Duo’s scale wrapper grows the complete character while keeping its dance intact. */
+.duo-bird-scale { display: block; width: 68px; height: 72px; transform-origin: center bottom; }
+.duo-bird-feet { display: flex; gap: 4px; }
+.duo-bird-feet i { display: block; width: 8px; height: 9px; border-radius: 50%; background: #ff9c00; }.unit-mascot-character.mascot-size-small .duo-bird-scale { transform: scale(1.1); }
+.unit-mascot-character.mascot-size-medium .duo-bird-scale { transform: scale(1.35); }
+.unit-mascot-character.mascot-size-large .duo-bird-scale { transform: scale(1.6); }

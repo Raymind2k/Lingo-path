@@ -147,17 +147,19 @@ function RandomBird({ motionClass = "" }: { motionClass?: string }) {
   }, []);
 
   return (
-    <span className={`duo-bird ${motionClass}`} aria-label="Duo the owl">
-      <span className="duo-bird-body">
-        <span className="duo-bird-wing" />
-        <span className="duo-bird-feet">● ●</span>
-      </span>
-      <span className={`duo-bird-head pose-${pose}`}>
-        <span className="duo-bird-eyes">
-          <i />
-          <i />
+    <span className="duo-bird-scale">
+      <span className={`duo-bird ${motionClass}`} aria-label="Duo the owl">
+        <span className="duo-bird-body">
+          <span className="duo-bird-wing" />
+          <span className="duo-bird-feet"><i /><i /></span>
         </span>
-        <span className="duo-bird-beak" />
+        <span className={`duo-bird-head pose-${pose}`}>
+          <span className="duo-bird-eyes">
+            <i />
+            <i />
+          </span>
+          <span className="duo-bird-beak" />
+        </span>
       </span>
     </span>
   );
@@ -179,7 +181,7 @@ function getUnitMascotPlacements(unitId: number, position: number): MascotPlacem
   const sizes: MascotPlacement["size"][] = ["small", "medium", "large"];
   const firstSizeIndex = (Math.abs(unitId * 7 + artPosition * 11) + Math.floor(random() * 3)) % sizes.length;
   const makePlacement = (side: "left" | "right", y: number, size: MascotPlacement["size"]): MascotPlacement => ({
-    x: side === "left" ? 10 + random() * 7 : 83 + random() * 7,
+    x: side === "left" ? 25 + random() * 4 : 75 + random() * 4,
     y,
     size,
   });
@@ -999,6 +1001,12 @@ export default function Home() {
                 const completedSkills = unit.skills.filter((skill) => skill.progress.status === "completed").length;
                 return (
                   <article className={`unit-card course-unit course-unit-theme-${((unit.position - 1) % 5) + 1}`} key={unit.id}>
+                    <div className="unit-subheading">
+                      <div className="unit-topic-divider" aria-label={`Unit topic: ${unit.title}`}>
+                        <span>{unit.description ?? unit.title}</span>
+                      </div>
+                      <span className="unit-progress-copy">{completedSkills}/{unit.skills.length} skills complete</span>
+                    </div>
                     <header className="unit-banner">
                       <div>
                         <p className="unit-number">SECTION 1 · UNIT {unit.position}</p>
@@ -1007,12 +1015,6 @@ export default function Home() {
                       </div>
                       <span className="unit-banner-stamp" aria-hidden="true">{String(unit.position).padStart(2, "0")}</span>
                     </header>
-                    <div className="unit-subheading">
-                      <div className="unit-topic-divider" aria-label={`Unit topic: ${unit.title}`}>
-                        <span>{unit.description ?? unit.title}</span>
-                      </div>
-                      <span className="unit-progress-copy">{completedSkills}/{unit.skills.length} skills complete</span>
-                    </div>
                     <UnitMascot position={unit.position} unitId={unit.id} />
                     <div className="skills-list skill-path">
                       {unit.skills.map((skill, index) => {

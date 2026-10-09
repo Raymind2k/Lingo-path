@@ -1,7 +1,15 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-
+import { Nunito } from "next/font/google";
 import "./globals.css";
+
+const nunito = Nunito({
+  variable: "--font-nunito",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  display: "swap",
+});
+
 
 export const metadata: Metadata = {
   title: "Lingo Path",
@@ -15,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={nunito.variable}>{children}</body>
     </html>
   );
 }
