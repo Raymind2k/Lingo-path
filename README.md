@@ -56,95 +56,28 @@ The frontend uses the Next.js App Router. The main Learn path and lesson player 
 
 Alembic migrations define the schema, and SQLAlchemy models are in `backend/app/models/`.
 
-```mermaid
-erDiagram
-    COURSES ||--o{ UNITS : contains
-    UNITS ||--o{ SKILLS : contains
-    SKILLS ||--o{ LESSONS : contains
-    LESSONS ||--o{ EXERCISES : contains
-    USERS ||--|| USER_STATS : has
-    USERS ||--o{ USER_SKILL_PROGRESS : earns
-    SKILLS ||--o{ USER_SKILL_PROGRESS : tracks
-    USERS ||--o{ DAILY_ACTIVITY : records
-    USERS ||--o{ EXERCISE_ATTEMPTS : submits
-    EXERCISES ||--o{ EXERCISE_ATTEMPTS : receives
-
-    COURSES {
-        int id PK
-        string slug UK
-        string name
-        string source_language
-        string target_language
-    }
-    UNITS {
-        int id PK
-        int course_id FK
-        int position
-        string title
-    }
-    SKILLS {
-        int id PK
-        int unit_id FK
-        int position
-        string title
-    }
-    LESSONS {
-        int id PK
-        int skill_id FK
-        int position
-        string title
-        int xp_reward
-    }
-    EXERCISES {
-        int id PK
-        int lesson_id FK
-        int position
-        string exercise_type
-        text prompt
-        json config
-    }
-    USERS {
-        int id PK
-        string username UK
-        string display_name
-        string timezone
-    }
-    USER_STATS {
-        int id PK
-        int user_id FK
-        int total_xp
-        int current_streak
-        int longest_streak
-        int hearts
-        int max_hearts
-        int daily_xp_goal
-        datetime next_heart_at
-    }
-    USER_SKILL_PROGRESS {
-        int id PK
-        int user_id FK
-        int skill_id FK
-        string status
-        int crowns
-        datetime completed_at
-    }
-    DAILY_ACTIVITY {
-        int id PK
-        int user_id FK
-        date activity_date
-        int xp_earned
-        int lessons_completed
-    }
-    EXERCISE_ATTEMPTS {
-        int id PK
-        int user_id FK
-        int exercise_id FK
-        text submitted_answer
-        boolean is_correct
-        int xp_awarded
-        datetime created_at
-    }
+```text
+COURSES 1 ──< UNITS 1 ──< SKILLS 1 ──< LESSONS 1 ──< EXERCISES
+USERS 1 ──1 USER_STATS
+USERS 1 ──< USER_SKILL_PROGRESS >──1 SKILLS
+USERS 1 ──< DAILY_ACTIVITY
+USERS 1 ──< EXERCISE_ATTEMPTS >──1 EXERCISES
 ```
+
+`1 ──<` means one-to-many; `1 ──1` means one-to-one.
+
+| Table | Key columns |
+| --- | --- |
+| `COURSES` | `id` (PK), `slug` (unique), `name`, `source_language`, `target_language` |
+| `UNITS` | `id` (PK), `course_id` (FK), `position`, `title` |
+| `SKILLS` | `id` (PK), `unit_id` (FK), `position`, `title` |
+| `LESSONS` | `id` (PK), `skill_id` (FK), `position`, `title`, `xp_reward` |
+| `EXERCISES` | `id` (PK), `lesson_id` (FK), `position`, `exercise_type`, `prompt`, `config` (JSON) |
+| `USERS` | `id` (PK), `username` (unique), `display_name`, `timezone` |
+| `USER_STATS` | `id` (PK), `user_id` (FK), `total_xp`, streak fields, hearts, daily XP goal, next heart time |
+| `USER_SKILL_PROGRESS` | `id` (PK), `user_id` (FK), `skill_id` (FK), `status`, `crowns`, `completed_at` |
+| `DAILY_ACTIVITY` | `id` (PK), `user_id` (FK), `activity_date`, `xp_earned`, `lessons_completed` |
+| `EXERCISE_ATTEMPTS` | `id` (PK), `user_id` (FK), `exercise_id` (FK), `submitted_answer`, `is_correct`, `xp_awarded`, `created_at` |
 
 `USER_SKILL_PROGRESS` connects learners to skills and stores each skill's lock/completion status and crowns. `DAILY_ACTIVITY` stores XP and completed lessons by learner and date. Exercise configuration is JSON so each exercise type can store its own choices, word bank, or matching pairs. The demo database is local and ignored by Git.
 
