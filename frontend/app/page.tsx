@@ -121,6 +121,7 @@ async function getJson<T>(url: string): Promise<T> {
 }
 
 export default function Home() {
+  const [darkMode, setDarkMode] = useState(false);
   const [path, setPath] = useState<LearningPath | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
@@ -163,6 +164,14 @@ export default function Home() {
       );
     });
   }, [refreshDashboard]);
+
+  useEffect(() => {
+  const savedTheme = window.localStorage.getItem("lingo-path-theme");
+  const useDarkMode = savedTheme === "dark";
+
+  setDarkMode(useDarkMode);
+  document.documentElement.dataset.theme = useDarkMode ? "dark" : "light";
+}, []);
 
   async function openLesson(lessonId: number) {
     setLesson(null);
@@ -427,8 +436,27 @@ export default function Home() {
           <span className="brand-mark">L</span>
           Lingo Path
         </a>
-        <div className="learner-label">
-          <strong>{path.learner.display_name}</strong>
+        <div className="header-actions">
+          <div className="learner-label">
+            <strong>{path.learner.display_name}</strong>
+          </div>
+
+          <button
+            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            aria-pressed={darkMode}
+            className="theme-toggle"
+            onClick={() => {
+              const nextMode = !darkMode;
+              const nextTheme = nextMode ? "dark" : "light";
+
+              setDarkMode(nextMode);
+              document.documentElement.dataset.theme = nextTheme;
+              window.localStorage.setItem("lingo-path-theme", nextTheme);
+            }}
+            type="button"
+          >
+            {darkMode ? "☀️ Light" : "🌙 Dark"}
+          </button>
         </div>
       </header>
 
