@@ -51,6 +51,7 @@ type Achievement = {
   unlocked: boolean;
 };
 
+type DailyQuest = { id: string; title: string; icon: string; progress: number; target: number; completed: boolean };
 type Profile = {
   username: string;
   display_name: string;
@@ -62,6 +63,9 @@ type Profile = {
   daily_xp_goal: number;
   today_xp: number;
   daily_goal_met: boolean;
+  heart_refill_seconds: number | null;
+  daily_quests: DailyQuest[];
+  monthly_quest: { title: string; progress: number; target: number; completed: boolean; days_remaining: number };
   achievements?: Achievement[];
 };
 
@@ -173,6 +177,8 @@ export default function Home() {
 
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [lessonFinished, setLessonFinished] = useState(false);
+  const [outOfHearts, setOutOfHearts] = useState(false);
+  const [refillingHearts, setRefillingHearts] = useState(false);
   const [xpEarned, setXpEarned] = useState(0);
 
   const [selectedChoice, setSelectedChoice] = useState("");
@@ -197,11 +203,16 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    refreshDashboard().catch((error: unknown) => {
-      setPageError(
-        error instanceof Error ? error.message : "Could not load your course.",
-      );
-    });
+    refreshDashboard()
+      .then(() => {
+        const lessonId = Number(new URLSearchParams(window.location.search).get("lesson_id"));
+        if (Number.isInteger(lessonId) && lessonId > 0) openLesson(lessonId);
+      })
+      .catch((error: unknown) => {
+        setPageError(error instanceof Error ? error.message : "Could not load your course.");
+      });
+    // Read the initial route query once, without restarting a lesson on state changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshDashboard]);
 
   useEffect(() => {
@@ -212,12 +223,24 @@ export default function Home() {
   document.documentElement.dataset.theme = useDarkMode ? "dark" : "light";
 }, []);
 
+  useEffect(() => {
+    const refreshTimer = window.setInterval(() => {
+      getJson<Profile>(`${API_URL}/profile/demo-learner`).then(setProfile).catch(() => undefined);
+    }, 30_000);
+    return () => window.clearInterval(refreshTimer);
+  }, []);
+
+  useEffect(() => {
+    if (outOfHearts && profile && profile.hearts > 0) setOutOfHearts(false);
+  }, [outOfHearts, profile]);
+
   async function openLesson(lessonId: number) {
     setLesson(null);
     setLessonError(null);
     setLessonLoading(true);
     setCurrentExerciseIndex(0);
     setLessonFinished(false);
+    setOutOfHearts(false);
     setXpEarned(0);
     clearCurrentAnswer();
 
@@ -242,6 +265,23 @@ export default function Home() {
     setTypedAnswer("");
     setAnswerFeedback(null);
     setLessonError(null);
+  }
+
+  async function refillHearts() {
+    setRefillingHearts(true);
+    setLessonError(null);
+    try {
+      const response = await fetch(`${API_URL}/profile/demo-learner/refill-hearts`, { method: "POST" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.detail ?? "Could not refill hearts.");
+      await refreshDashboard();
+      setOutOfHearts(false);
+      setAnswerFeedback(null);
+    } catch (error) {
+      setLessonError(error instanceof Error ? error.message : "Could not refill hearts.");
+    } finally {
+      setRefillingHearts(false);
+    }
   }
 
   function getWordBankWords(exercise: Exercise): string[] {
@@ -394,11 +434,14 @@ export default function Home() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.detail ?? "Could not submit your answer.");
+        const detail = result.detail ?? "Could not submit your answer.";
+        if (String(detail).toLowerCase().includes("no hearts")) setOutOfHearts(true);
+        throw new Error(detail);
       }
 
       const feedback = result as AnswerFeedback;
       setAnswerFeedback(feedback);
+      if (feedback.hearts_remaining <= 0) setOutOfHearts(true);
 
       await refreshDashboard();
 
@@ -467,21 +510,7 @@ export default function Home() {
   const currentSpeechText = currentExercise
     ? getCurrentAnswerForSpeech(currentExercise)
     : "";
-  const dailyQuests = [
-    { id: "quest-10", title: "Earn 10 XP", target: 10, icon: "⚡" },
-    {
-      id: "quest-goal",
-      title: `Reach your ${profile.daily_xp_goal} XP goal`,
-      target: Math.max(profile.daily_xp_goal, 1),
-      icon: "🎯",
-    },
-    {
-      id: "quest-bonus",
-      title: "Earn bonus XP",
-      target: Math.max(profile.daily_xp_goal * 2, 20),
-      icon: "🏅",
-    },
-  ];
+  const dailyQuests = profile.daily_quests ?? [];
 
   return (
     <main className="page-shell">
@@ -540,6 +569,10 @@ export default function Home() {
           <span>🔥 Current streak</span>
           <strong>{profile.current_streak} days</strong>
         </div>
+        <div className="sidebar-stat mock-gem-stat" aria-label="39 gems (mock balance)">
+          <span>💎 Gems</span>
+          <strong>39</strong>
+        </div>
       </section>
 
       {lesson ? (
@@ -557,30 +590,24 @@ export default function Home() {
           </button>
 
           {lessonFinished ? (
-            <section className="message-card">
-              <p className="eyebrow">LESSON COMPLETE</p>
-              <h1>Great work!</h1>
-              <p>
-                {xpEarned > 0
-                  ? `You earned ${xpEarned} XP.`
-                  : "This lesson’s XP reward was already earned."}
-              </p>
-              <button
-                className="lesson-back-button"
-                onClick={() => {
-                  setLesson(null);
-                  setLessonFinished(false);
-                }}
-                type="button"
-              >
-                Return to learning path
-              </button>
-            </section>
+            <div className="celebration-backdrop">
+              <section className="celebration-modal" role="dialog" aria-modal="true" aria-labelledby="lesson-complete-title">
+                <span className="celebration-icon" aria-hidden="true">🎉</span>
+                <p className="eyebrow">LESSON COMPLETE</p>
+                <h1 id="lesson-complete-title">Great work!</h1>
+                <p>{xpEarned > 0 ? `You earned ${xpEarned} XP.` : "This lesson’s XP reward was already earned."}</p>
+                <button className="primary-action" onClick={() => { setLesson(null); setLessonFinished(false); }} type="button">Return to learning path</button>
+              </section>
+            </div>
           ) : currentExercise ? (
             <>
               <p className="eyebrow">
                 QUESTION {currentExerciseIndex + 1} OF {lesson.exercises.length}
               </p>
+              <div className="lesson-progress-wrap">
+                <progress aria-label="Lesson progress" max={lesson.exercises.length} value={currentExerciseIndex + (answerFeedback?.correct ? 1 : 0)} />
+                <span>{currentExerciseIndex + (answerFeedback?.correct ? 1 : 0)} / {lesson.exercises.length}</span>
+              </div>
               <h1>{lesson.title}</h1>
               <p>{currentExercise.prompt}</p>
 
@@ -766,11 +793,7 @@ export default function Home() {
                   {answerFeedback && (
                     <div
                       aria-live="polite"
-                      style={{
-                        marginTop: 16,
-                        color: answerFeedback.correct ? "#398000" : "#a33",
-                        lineHeight: 1.5,
-                      }}
+                      className={`feedback-panel ${answerFeedback.correct ? "feedback-correct" : "feedback-incorrect"}`}
                     >
                       <strong>{answerFeedback.feedback}</strong>
                       {!answerFeedback.correct && (
@@ -870,10 +893,9 @@ export default function Home() {
                           )}
                           <span className="skill-info">
                             <strong>{skill.title}</strong>
-                            <p>
-                              {skill.lessons.length} lesson
-                              {skill.lessons.length === 1 ? "" : "s"} ·{" "}
-                              {skill.progress.crowns} crowns
+                            <p className="skill-progress-copy">
+                              {skill.lessons.length} lesson{skill.lessons.length === 1 ? "" : "s"} · {skill.progress.crowns}/5 crowns
+                              <span className={`crowns-ring crowns-${skill.progress.crowns}`} aria-label={`${skill.progress.crowns} of 5 crowns`} title={`${skill.progress.crowns} of 5 crowns`}>★</span>
                             </p>
                             {skill.lessons.map((item) => (
                               <span className="lesson-label" key={item.id}>
@@ -930,8 +952,8 @@ export default function Home() {
                 <h3 id="daily-quests-title">Small goals, big progress</h3>
                 <div className="quest-list">
                   {dailyQuests.map((quest) => {
-                    const progress = Math.min(profile.today_xp, quest.target);
-                    const completed = progress >= quest.target;
+                    const progress = quest.progress;
+                    const completed = quest.completed;
 
                     return (
                       <article
@@ -1050,6 +1072,20 @@ export default function Home() {
             </aside>
           </div>
         </>
+      )}
+      {outOfHearts && lesson && (
+        <div className="celebration-backdrop" role="presentation">
+          <section className="celebration-modal hearts-modal" role="dialog" aria-modal="true" aria-labelledby="out-of-hearts-title">
+            <span className="celebration-icon" aria-hidden="true">💔</span>
+            <p className="eyebrow">TAKE A QUICK BREAK</p>
+            <h1 id="out-of-hearts-title">You’re out of hearts</h1>
+            <p>Refill your hearts for free in this demo, or come back after they regenerate.</p>
+            {profile.heart_refill_seconds !== null && profile.heart_refill_seconds > 0 && <p className="heart-timer">Next heart in about {Math.ceil(profile.heart_refill_seconds / 60)} minutes</p>}
+            {lessonError && <p className="route-error">{lessonError}</p>}
+            <button className="primary-action" disabled={refillingHearts} onClick={refillHearts} type="button">{refillingHearts ? "Refilling…" : "Refill hearts"}</button>
+            <button className="light-action" onClick={() => { setOutOfHearts(false); setLesson(null); setLessonError(null); }} type="button">Return to learning path</button>
+          </section>
+        </div>
       )}
     </main>
   );

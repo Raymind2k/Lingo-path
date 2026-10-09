@@ -16,6 +16,7 @@ from app.models import (
     Unit,
     User,
     UserSkillProgress,
+    UserStats,
 )
 
 
@@ -35,6 +36,29 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def refresh_hearts(stats: UserStats, now: datetime) -> None:
+    """Regenerate one heart per 30-minute interval that has elapsed."""
+    interval = timedelta(minutes=30)
+    if stats.hearts >= stats.max_hearts:
+        stats.next_heart_at = None
+        return
+    next_at = stats.next_heart_at
+    if next_at is None:
+        stats.next_heart_at = now + interval
+        return
+    if next_at.tzinfo is None:
+        next_at = next_at.replace(tzinfo=timezone.utc)
+    if now < next_at:
+        return
+    recovered = 1 + int((now - next_at) // interval)
+    stats.hearts = min(stats.max_hearts, stats.hearts + recovered)
+    stats.next_heart_at = (
+        None
+        if stats.hearts >= stats.max_hearts
+        else next_at + interval * recovered
+    )
 
 
 def normalize_answer(value: str) -> str:
@@ -150,7 +174,9 @@ def submit_answer(
             detail="Learner statistics are missing; run the seed script again",
         )
 
+    refresh_hearts(user.stats, datetime.now(timezone.utc))
     if user.stats.hearts <= 0:
+        db.commit()
         raise HTTPException(
             status_code=400,
             detail="No hearts remaining. Wait for a heart to refill before continuing.",
@@ -191,6 +217,8 @@ def submit_answer(
 
     if not is_correct:
         user.stats.hearts = max(0, user.stats.hearts - 1)
+        if user.stats.hearts < user.stats.max_hearts and user.stats.next_heart_at is None:
+            user.stats.next_heart_at = datetime.now(timezone.utc) + timedelta(minutes=30)
         db.commit()
 
         return {

@@ -60,6 +60,35 @@ def seed_database() -> None:
                                                     },
                                                     explanation="'Buenos días' means 'Good morning'.",
                                                 ),
+                                                Exercise(
+                                                    position=3,
+                                                    exercise_type="word_bank",
+                                                    prompt="Build the Spanish phrase for 'Hello, friend'.",
+                                                    config={"words": ["Hola", "amigo", "gracias"], "correct_answer": "Hola amigo"},
+                                                    explanation="'Hola amigo' means 'Hello, friend'.",
+                                                ),
+                                                Exercise(
+                                                    position=4,
+                                                    exercise_type="fill_blank",
+                                                    prompt="Complete the Spanish greeting: Buenos ___.",
+                                                    config={"correct_answer": "días"},
+                                                    explanation="'Buenos días' means 'Good morning'.",
+                                                ),
+                                                Exercise(
+                                                    position=5,
+                                                    exercise_type="matching",
+                                                    prompt="Match each Spanish word with its English meaning.",
+                                                    config={
+                                                        "pairs": [
+                                                            {"left": "Hola", "right": "Hello"},
+                                                            {"left": "Gracias", "right": "Thank you"},
+                                                            {"left": "Adiós", "right": "Goodbye"},
+                                                        ],
+                                                        "right_options": ["Goodbye", "Hello", "Thank you"],
+                                                        "correct_answer": "Hola=Hello|Gracias=Thank you|Adiós=Goodbye",
+                                                    },
+                                                    explanation="These are common Spanish greetings and polite phrases.",
+                                                ),
                                             ],
                                         )
                                     ],
