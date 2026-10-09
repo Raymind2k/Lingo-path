@@ -1,25 +1,20 @@
 # Lingo Path
 
-Lingo Path is a Duolingo-inspired English-to-Spanish learning app built as a full-stack project. Learners follow a winding skill path, complete short lessons with different exercise formats, and track progress through a gamified interface.
+Lingo Path is a full-stack, Duolingo-inspired language-learning app. It teaches Spanish from English through a winding skill path, short lessons, and saved learner progress. The repository includes a Next.js frontend and a FastAPI backend backed by SQLite.
 
-- **Live demo:** [https://lingo-path-virid.vercel.app/](https://lingo-path-virid.vercel.app/)
-- **Backend health check:** [https://lingo-path.onrender.com/health](https://lingo-path.onrender.com/health)
-- **Source repository:** [https://github.com/Raymind2k/Lingo-path](https://github.com/Raymind2k/Lingo-path)
-
-The stable Vercel domain above is the public demo link. Vercel also creates preview/deployment-specific URLs; the backend CORS allowlist is configured for the stable domain, so use that domain when evaluating the app.
+> **Course:** Spanish Foundations (English → Spanish) · **Hosted demo:** Not configured yet; follow the local setup below to run the app.
 
 ## Features
 
-- **Learning path:** Seven course units, with ten skill nodes per unit. Nodes display locked, available, and completed states, and completing skills advances learner progress.
-- **Varied lessons:** Multiple choice, typed translation, word-bank, matching, and fill-in-the-blank exercises. Content is seeded in the backend database.
-- **Lesson feedback:** Answer checking, correct/incorrect feedback, explanations, hearts, heart regeneration, and lesson completion rewards.
-- **Progress and rewards:** XP totals, daily XP goal, streaks, skill completion, quests, achievements, a sample leaderboard, gems, and chest rewards.
-- **Browser-specific learner:** A browser profile gets its own anonymous learner. Returning to that browser resumes its backend-stored progress; a different browser starts a separate learner.
-- **Responsive experience:** Desktop, tablet, and mobile layouts, with responsive navigation, learning path, and lesson controls.
-- **Theme preference:** Light/dark preference is kept in that browser.
-- **Main sections:** Learn, Practice, Leaderboards, Quests, Shop, Profile, and More/settings.
+- **Learning path:** Seven units with ten skill nodes per unit. Nodes show locked, available, and completed states; completing skills advances progress and unlocks rewards.
+- **Varied lessons:** Multiple choice, typed translation, word bank, matching, and fill-in-the-blank exercises. Lessons rotate exercise order so consecutive nodes do not always start with the same format.
+- **Feedback and progress:** Immediate answer feedback, accent correction for Spanish answers, hearts and recovery, lesson XP, daily goal, streaks, quests, achievements, and a seeded leaderboard.
+- **Browser-specific progress:** A new browser profile receives its own fresh learner. Reopening the app in that browser resumes its saved progress; another browser on the same computer starts separately.
+- **Reward and account pages:** Learn, Practice, Leaderboards, Quests, Shop, Profile, and More/settings pages share the app navigation.
+- **Responsive UI:** Desktop, tablet, and mobile layouts, with mobile navigation and responsive lesson controls.
+- **Theme preference:** Light/dark theme preference is saved in the browser.
 
-## Technology
+## Tech stack
 
 | Area | Technology |
 | --- | --- |
@@ -28,48 +23,38 @@ The stable Vercel domain above is the public demo link. Vercel also creates prev
 | Backend | Python 3.10+, FastAPI |
 | ORM and database | SQLAlchemy, SQLite |
 | Schema migrations | Alembic |
-| Frontend hosting | Vercel |
-| Backend hosting | Render (free web service) |
 
-Next.js 16 requires Node.js 20.9 or newer. The backend uses Python 3.10 or newer.
+Next.js 16 requires Node.js 20.9 or newer. Python 3.10 or newer is required by the backend type syntax.
 
-## Architecture and data flow
+## Architecture
 
 ```text
-Learner's browser
-  ├─ Next.js UI (Vercel; frontend/)
-  │    ├─ Learn path and lesson player: frontend/app/page.tsx
-  │    ├─ Secondary pages: frontend/app/{practice,leaderboards,quests,shop,profile,more}/
-  │    ├─ Browser learner ID: frontend/app/browserLearner.ts
-  │    └─ Theme, gems, and chest display state: browser localStorage
-  │
-  │    JSON requests to NEXT_PUBLIC_API_URL
-  ▼
-FastAPI API (Render; backend/app/main.py)
-  ├─ /health
-  ├─ /profile (bootstrap, stats, heart refill)
-  ├─ /path (course and learner skill progress)
-  ├─ /lessons (lesson content and answer submission)
-  └─ /leaderboard (learner and seeded sample learners)
-  │
-  │ SQLAlchemy sessions
-  ▼
-SQLite database (path selected by DATABASE_URL)
-  ├─ Course content and exercises
-  ├─ Anonymous learner profiles and stats
-  ├─ Skill completion and daily activity
-  └─ Exercise attempts
+Browser
+  └─ Next.js frontend (frontend/)
+       ├─ /                         Learn path and lesson player
+       ├─ /practice                 Practice
+       ├─ /leaderboards              Leaderboards
+       ├─ /quests                    Quests
+       ├─ /shop                      Shop
+       ├─ /profile                   Profile
+       └─ /more                      More and settings
+              │ HTTP JSON (NEXT_PUBLIC_API_URL)
+              ▼
+       FastAPI backend (backend/app/main.py)
+         ├─ /path                    Learning path API
+         ├─ /lessons                 Lesson and answer APIs
+         ├─ /profile                 Learner stats and heart refill
+         └─ /leaderboard             Seeded leaderboard API
+              │ SQLAlchemy
+              ▼
+          SQLite (backend/lingo_path.db)
 ```
 
-The frontend reads `NEXT_PUBLIC_API_URL` when it is built. It sends browser requests directly to FastAPI; the API uses `CORS_ORIGINS` to allow the deployed frontend origin. There is no Next.js API proxy or separate authentication service.
-
-On first use, the frontend creates a UUID and saves it under `lingo-path-browser-id` in localStorage. It sends that UUID to `POST /profile/bootstrap`. FastAPI derives a unique anonymous username from the UUID and creates the learner and initial skill-progress rows. The UUID stays in that browser profile, while XP, hearts, streaks, attempts, and course progress are stored by the backend in SQLite. A different browser profile receives a different UUID and learner.
-
-The browser also stores presentation-only state such as theme selection and demo gem/chest claims. These client-side values are separate from learner XP and lesson progress.
+The frontend uses the Next.js App Router. The main Learn path and lesson player live in `frontend/app/page.tsx`; shared navigation and the secondary sections are in `frontend/app/components/` and the route folders. FastAPI mounts the path, lesson, profile, and leaderboard routers in `backend/app/main.py`. The frontend calls the backend directly over JSON HTTP; there is no separate authentication service. On first visit, the browser saves a random browser ID in local storage and calls `POST /profile/bootstrap`. The API uses that ID to create or retrieve the matching anonymous learner row, so learner progress is stored in SQLite but scoped to that browser profile.
 
 ## Database schema
 
-Alembic migrations define the database schema. SQLAlchemy models are in `backend/app/models/`.
+Alembic migrations define the schema, and SQLAlchemy models are in `backend/app/models/`.
 
 ```text
 COURSES 1 ──< UNITS 1 ──< SKILLS 1 ──< LESSONS 1 ──< EXERCISES
@@ -81,26 +66,26 @@ USERS 1 ──< EXERCISE_ATTEMPTS >──1 EXERCISES
 
 `1 ──<` means one-to-many; `1 ──1` means one-to-one.
 
-| Table | Purpose and key fields |
+| Table | Key columns |
 | --- | --- |
-| `courses` | Course slug, name, source language, and target language. |
-| `units` | Ordered course sections with titles and descriptions. |
-| `skills` | Ordered skill nodes within a unit. |
-| `lessons` | Lessons associated with a skill and their XP reward. |
-| `exercises` | Ordered lesson questions, type, prompt, JSON configuration, and explanation. |
-| `users` | Anonymous learner username, display name, timezone, and creation time. |
-| `user_stats` | Total XP, current/longest streak, hearts, daily goal, and heart-regeneration time. |
-| `user_skill_progress` | Per-learner skill status, crowns, and completion time. |
-| `daily_activity` | Per-learner, per-day XP earned and lessons completed. |
-| `exercise_attempts` | Submitted answer, correctness, XP awarded, and timestamp. |
+| `COURSES` | `id` (PK), `slug` (unique), `name`, `source_language`, `target_language` |
+| `UNITS` | `id` (PK), `course_id` (FK), `position`, `title` |
+| `SKILLS` | `id` (PK), `unit_id` (FK), `position`, `title` |
+| `LESSONS` | `id` (PK), `skill_id` (FK), `position`, `title`, `xp_reward` |
+| `EXERCISES` | `id` (PK), `lesson_id` (FK), `position`, `exercise_type`, `prompt`, `config` (JSON) |
+| `USERS` | `id` (PK), `username` (unique), `display_name`, `timezone` |
+| `USER_STATS` | `id` (PK), `user_id` (FK), `total_xp`, streak fields, hearts, daily XP goal, next heart time |
+| `USER_SKILL_PROGRESS` | `id` (PK), `user_id` (FK), `skill_id` (FK), `status`, `crowns`, `completed_at` |
+| `DAILY_ACTIVITY` | `id` (PK), `user_id` (FK), `activity_date`, `xp_earned`, `lessons_completed` |
+| `EXERCISE_ATTEMPTS` | `id` (PK), `user_id` (FK), `exercise_id` (FK), `submitted_answer`, `is_correct`, `xp_awarded`, `created_at` |
 
-Exercise-specific configuration is stored as JSON. For example, a multiple-choice exercise stores its choices and correct answer; a matching exercise stores the pairs. Answer keys are not returned when the frontend fetches a lesson. Migrations are in `backend/migrations/versions/`.
+`USER_SKILL_PROGRESS` connects learners to skills and stores each skill's lock/completion status and crowns. `DAILY_ACTIVITY` stores XP and completed lessons by learner and date. Exercise configuration is JSON so each exercise type can store its own choices, word bank, or matching pairs. The demo database is local and ignored by Git.
 
 ## Run locally
 
-You need Git, Python 3.10+, Node.js 20.9+, and npm. Run the backend and frontend in separate terminals.
+You need Git, Python 3.10+, Node.js 20.9+, and npm. Start the backend and frontend in separate terminals.
 
-### 1. Set up the backend
+### 1. Set up and seed the backend
 
 From the repository root in PowerShell:
 
@@ -116,9 +101,9 @@ python -m app.db.seed_leaderboard
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-The API runs at <http://127.0.0.1:8000>. Interactive API documentation is at <http://127.0.0.1:8000/docs>. The seed command creates the Spanish course, expands it to seven units with ten skill nodes each, and prepares the demo learner. The leaderboard seed creates example competitors. It resets those sample competitors' XP, streak, hearts, and daily goal when rerun.
+The API is at <http://127.0.0.1:8000>; interactive API documentation is at <http://127.0.0.1:8000/docs>. The seed command creates the Spanish course, expands each unit to ten skill nodes, and creates `demo-learner`. The leaderboard seed adds sample learners; running it again resets those sample learners' XP, streaks, hearts, and daily goals.
 
-If PowerShell blocks virtual-environment activation, allow it for this terminal only:
+If PowerShell blocks virtual-environment activation, allow it for the current terminal only, then activate:
 
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned
@@ -135,72 +120,41 @@ npm install
 npm run dev
 ```
 
-The frontend defaults to `http://127.0.0.1:8000` for the backend. To override it, create `frontend/.env.local`:
+The frontend defaults to `http://127.0.0.1:8000` for the API. To use a different backend address, create `frontend/.env.local`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
 ```
 
-Then open <http://localhost:3000>.
+Open <http://localhost:3000>.
 
-### Production build
+### Production frontend build
 
-From `frontend/`, run:
+With dependencies installed, from `frontend/`:
 
 ```powershell
 npm run build
 npm run start
 ```
 
-The production build was verified locally after removing a build-time Google Fonts import that failed on Vercel. The stylesheet uses an Arial/Helvetica system font stack and does not need a network font download.
-
-## Deployment configuration
-
-### Render API
-
-The FastAPI service is deployed at <https://lingo-path.onrender.com> and its `/health` endpoint returns `{"status":"ok"}`.
-
-For a monorepo Render Web Service, use `backend` as the root directory, install dependencies with `pip install -r requirements.txt`, and start the app with:
-
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port $PORT
-```
-
-Apply the Alembic migrations and seed the course/leaderboard data before the first use. The app accepts these environment variables:
-
-| Variable | Example/value | Purpose |
-| --- | --- | --- |
-| `DATABASE_URL` | `sqlite:////tmp/lingo_path.db` on the current free demo | SQLAlchemy database connection. |
-| `CORS_ORIGINS` | `https://lingo-path-virid.vercel.app` | Comma-separated frontend origins permitted to call the API. |
-
-Render's free service has an ephemeral filesystem and spins down after inactivity. Without a persistent disk or an external database, SQLite data can be lost on restart/redeployment, and the first request after inactivity can be slow while the service wakes. This is acceptable for the submitted demo but should be changed for durable production use.
-
-### Vercel frontend
-
-The frontend is deployed at <https://lingo-path-virid.vercel.app/>. Import the GitHub repository into Vercel, set **Root Directory** to `frontend`, and use the Next.js preset. Set the following environment variable for the **Production** environment, then redeploy:
-
-```env
-NEXT_PUBLIC_API_URL=https://lingo-path.onrender.com
-```
-
-This is a public frontend configuration value, not a secret. Vercel preview URLs are different origins; because the current Render CORS allowlist contains the stable production domain, preview deployments may show an API fetch error. Use the stable production URL for the demo and submission.
+For a deployment, set `NEXT_PUBLIC_API_URL` to the reachable API URL and configure the FastAPI CORS allowlist in `backend/app/main.py` for the deployed frontend origin. This repository does not currently include a hosting-provider configuration.
 
 ## API overview
 
-All endpoints use JSON. A browser first bootstraps its learner, then uses the returned username for its requests.
+All endpoints return JSON. The `demo-learner` row is created by the seed script; browser sessions use a generated username returned by `/profile/bootstrap`.
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
-| `GET` | `/health` | Health check. |
-| `POST` | `/profile/bootstrap` | Create or resolve the anonymous learner for a browser UUID. |
-| `GET` | `/path/{username}` | Course units, skill nodes, lessons, and learner progress. |
-| `GET` | `/lessons/{lesson_id}?username={username}` | Load lesson content and exercises without answer keys. |
-| `POST` | `/lessons/{lesson_id}/answer` | Check an answer and record the attempt/progress updates. |
-| `GET` | `/profile/{username}` | Learner stats, heart timer, daily activity, quests, and achievements. |
-| `POST` | `/profile/{username}/refill-hearts` | Demo heart-refill action. |
-| `GET` | `/leaderboard?username={username}` | Ranked sample learners plus the current learner. |
+| `GET` | `/health` | API health check. |
+| `POST` | `/profile/bootstrap` | Create or retrieve the anonymous learner for a browser ID. |
+| `GET` | `/path/{username}` | Course units, skills, lessons, and learner progress. |
+| `GET` | `/lessons/{lesson_id}?username={username}` | Load a lesson and its exercises. |
+| `POST` | `/lessons/{lesson_id}/answer` | Submit an exercise answer and update attempt/progress data. |
+| `GET` | `/profile/{username}` | Load learner stats, hearts, daily activity, quests, and achievements. |
+| `POST` | `/profile/{username}/refill-hearts` | Use the demo heart refill flow. |
+| `GET` | `/leaderboard?username={username}` | Return seeded competitors and the current learner, ranked by XP. |
 
-Example bootstrap request:
+Example browser bootstrap request:
 
 ```http
 POST /profile/bootstrap
@@ -212,6 +166,8 @@ Content-Type: application/json
   "browser_id": "550e8400-e29b-41d4-a716-446655440000"
 }
 ```
+
+The response contains a generated `username`. Use it in subsequent path, profile, lesson, answer, and heart-refill requests.
 
 Example answer request:
 
@@ -228,50 +184,36 @@ Content-Type: application/json
 }
 ```
 
-## Project history and final implementation decisions
-
-This is a summary of the requirements and changes discussed during the project, not a verbatim transcript.
-
-1. **Build a Duolingo-inspired learning app.** The project was shaped around a Spanish learning course, a winding skill path, lesson exercises, learner progress, and familiar gamification UI.
-2. **Expand learning content and question variety.** The course was expanded to seven units with ten nodes per unit. Lesson exercises use multiple formats—multiple choice, typed translation, word-bank, matching, and fill-in-the-blank—so lessons do not repeat the same question style every time.
-3. **Stabilize path visuals and sizing.** Random mascot placement was replaced with explicit CSS positions. Node/mascot sizing and lesson-page scale were adjusted against the provided references; node cards keep their focus on the node itself rather than extra descriptive content.
-4. **Review responsiveness.** Mobile, tablet, and desktop layouts were revisited in the live browser, including the path and lesson screens, and layout issues found during that review were addressed.
-5. **Keep learner state consistent and browser-specific.** XP shown on different pages was aligned to the same backend learner record. A browser UUID stored in localStorage lets that browser resume progress while a different browser gets a fresh anonymous learner.
-6. **Prepare documentation and hosting.** The database schema, setup steps, API, assumptions, and deployment configuration were documented. The schema relationship diagram is plain text so GitHub renders it reliably.
-7. **Fix the production frontend build.** Vercel's build failed while processing `next/font/google` with a `next/font/google queries have exactly one entry` error. The Nunito build-time import was removed because the stylesheet already supplies a system font stack. `npm run build` then completed successfully, and commit `ca8c96a` (`Fix Vercel build font import`) was pushed to `main`.
-8. **Deploy and verify the demo.** The FastAPI health endpoint was confirmed healthy on Render. The Vercel production deployment for `ca8c96a` reached Ready, and the project owner confirmed that the stable demo URL opens and works. Preview deployment URLs are separate and may be blocked by the API's production CORS allowlist.
-
 ## Assumptions and demo limitations
 
-- The app starts as an anonymous demo learner; sign-in, registration, and account switching are not implemented.
-- Spanish-from-English is the seeded course. Course content and leaderboard competitors are sample data.
-- XP, streaks, hearts, daily goals, quests, and achievements use real app logic for the demo; leaderboard competitors are seeded examples rather than live external users.
-- Gems, chest claims, and theme preference are stored in the browser. Purchases/subscriptions and social features are placeholders.
-- Speech recognition/pronunciation scoring and additional languages are not implemented.
-- Learner records live in the backend database, but the current Render free-tier SQLite filesystem is ephemeral; progress can reset when the instance restarts or is redeployed.
-- The app assumes a default logged-in learner and does not provide authentication or production account security.
+- The app uses anonymous, browser-scoped learner IDs; authentication, registration, and account switching are not implemented. Clearing that browser's local storage creates a new learner on its next visit. Progress is not shared between browsers or synced across devices.
+- Spanish-from-English is the only seeded course. Lesson content is sample curriculum data stored in the database.
+- Leaderboard ranks are seeded examples, not a multi-user live competition.
+- Shop subscriptions and purchases are presentation placeholders. Gems and unit-chest claim state are demo mechanics stored in browser local storage.
+- Theme preference is stored in browser local storage. Learner XP, hearts, streaks, attempts, course progress, and daily activity are stored in SQLite.
+- The backend uses a local SQLite database and is intended for this single-instance demo, not production multi-user deployment.
+- No hosted demo URL is configured yet.
 
 ## Repository layout
 
 ```text
 backend/
   app/
-    api/routes/       # FastAPI path, lesson, profile, leaderboard endpoints
-    db/               # SQLAlchemy session, course and leaderboard seed data
+    api/routes/       # FastAPI path, lesson, profile, and leaderboard routes
+    db/               # SQLite connection and seed/course expansion scripts
     models/           # SQLAlchemy schema models
-    main.py           # FastAPI app and CORS configuration
-  migrations/         # Alembic environment and schema revisions
+    main.py           # FastAPI app and CORS setup
+  migrations/         # Alembic migration environment and revisions
   requirements.txt
 frontend/
   app/
-    components/       # Shared navigation and section pages
+    components/       # Shared navigation and secondary section pages
     practice/         # Practice route
     leaderboards/     # Leaderboard route
     quests/           # Quests route
     shop/             # Shop route
     profile/          # Profile route
-    more/             # More/settings route
+    more/             # Settings and other options
     page.tsx          # Learn path and lesson player
-    browserLearner.ts # Browser UUID and learner bootstrap
-    globals.css       # Responsive design, path styling, and animations
+    globals.css       # Responsive styling and animations
 ```
