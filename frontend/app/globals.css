@@ -1,4 +1,19 @@
 :root {
+  color-scheme: dark;
+  --ink: #f3f7f8;
+  --muted: #afc0c6;
+  --green: #58cc02;
+  --green-dark: #8be34b;
+  --line: #37474f;
+  --surface: #202f36;
+  --page: #131f24;
+  --soft-surface: #1b2b32;
+  --available-surface: #243b2a;
+  --completed-surface: #203b2a;
+  --locked-icon: #52636a;
+}
+
+:root[data-theme="light"] {
   color-scheme: light;
   --ink: #172b4d;
   --muted: #60728a;
@@ -615,9 +630,9 @@ a {
   bottom: 5px;
   width: 54px;
   height: 44px;
-  border: 3px solid #4d9f00;
+  border: 3px solid #46a800;
   border-radius: 48% 48% 42% 42%;
-  background: #78d600;
+  background: #58cc02;
 }
 
 .duo-bird-wing {
@@ -627,7 +642,7 @@ a {
   width: 20px;
   height: 26px;
   border-radius: 60% 20% 60% 50%;
-  background: #58b800;
+  background: #46a800;
   transform: rotate(-20deg);
 }
 
@@ -649,9 +664,9 @@ a {
   width: 48px;
   height: 46px;
   place-items: center;
-  border: 3px solid #4d9f00;
+  border: 3px solid #46a800;
   border-radius: 48% 48% 44% 44%;
-  background: #84df00;
+  background: #78df12;
   transition: transform 280ms cubic-bezier(.2,.8,.2,1);
   transform-origin: 50% 85%;
 }
@@ -1100,7 +1115,7 @@ body { font-family: "Nunito", "Trebuchet MS", system-ui, sans-serif; }
 .path-layout { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; gap: 34px; }
 .units { gap: 34px; }
 .course-unit { overflow: hidden; padding: 0 !important; border: 1px solid var(--line); border-radius: 22px; background: var(--surface) !important; box-shadow: 0 5px 0 rgb(0 0 0 / 8%) !important; }
-.unit-banner { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 142px; padding: 24px 28px; background: linear-gradient(115deg, #58cc02, #78df12); color: #fff; }
+.unit-banner { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 142px; padding: 24px 28px; background: #58cc02; color: #fff; }
 .unit-banner .unit-number { margin-bottom: 8px; color: rgb(255 255 255 / 84%); }
 .unit-banner h2 { margin: 0; font-size: clamp(23px, 2vw, 30px); letter-spacing: -.025em; }
 .unit-banner > div > p:last-child { margin: 8px 0 0; color: rgb(255 255 255 / 88%); }
@@ -1143,7 +1158,7 @@ body { font-family: "Nunito", "Trebuchet MS", system-ui, sans-serif; }
 .goal-card > p:last-of-type { margin: 8px 0 0; color: var(--muted); }
 .goal-card .rail-stat { margin-top: 15px; }
 .league-card { background: linear-gradient(145deg, #1a2b33, #1c3039); }
-:root:not([data-theme="dark"]) .league-card { background: #f8fbfc; }
+:root[data-theme="light"] .league-card { background: #f8fbfc; }
 .league-card-top { display: flex; align-items: center; gap: 10px; }
 .league-card-top > span { font-size: 28px; }
 .league-card-top .eyebrow { margin: 0; }
@@ -1196,4 +1211,140 @@ body { font-family: "Nunito", "Trebuchet MS", system-ui, sans-serif; }
   .skill-info > strong { font-size: 14px; }
   .skill-info .skill-progress-copy, .skill-info .lesson-label { font-size: 10px; }
   .page-shell:has(#lesson) .feedback-panel { padding: 16px 18px 72px; }
+}
+
+
+/* Road-free S-curve path and collectible unit chests. */
+.skills-list.skill-path::before { display: none !important; }
+.skills-list.skill-path .skill-step::after { display: none !important; }
+.skill-step { min-height: 156px; }
+.skill-step-left .skill-node { transform: translateX(24px) !important; }
+.skill-step-right .skill-node { transform: translateX(-24px) !important; }
+.skill-step-left .skill-info { transform: translateX(14px); }
+.skill-step-right .skill-info { transform: translateX(-14px); }
+.skill-path .bird-companion { top: calc(50% - 70px); }
+.unit-chest-wrap { position: relative; display: grid; justify-items: center; padding: 14px 0 10px; }
+.unit-chest { display: flex; align-items: center; gap: 13px; width: min(340px, 88%); min-height: 82px; padding: 12px 18px; border: 2px solid #52636a; border-radius: 20px; background: #273940; color: var(--ink); text-align: left; }
+.unit-chest:not(:disabled) { cursor: pointer; }
+.unit-chest:disabled { opacity: .58; }
+.unit-chest.chest-ready { border-color: #e9ad00; background: linear-gradient(110deg, #59400b, #3d3218); box-shadow: 0 5px 0 rgb(0 0 0 / 24%); }
+.unit-chest.chest-claimed { border-color: #58cc02; background: var(--completed-surface); }
+.unit-chest-icon { display: grid; width: 48px; height: 48px; flex: 0 0 48px; place-items: center; border-radius: 13px; background: #e9ad00; font-size: 28px; }
+.unit-chest > span:nth-child(2) { display: grid; gap: 5px; flex: 1; }
+.unit-chest small { color: var(--muted); font-size: 12px; }
+.chest-gem { font-size: 21px; }
+@media (max-width: 600px) {
+  .skill-step-left .skill-node { transform: translateX(12px) !important; }
+  .skill-step-right .skill-node { transform: translateX(-12px) !important; }
+  .skill-step-left .skill-info { transform: translateX(5px); }
+  .skill-step-right .skill-info { transform: translateX(-5px); }
+  .unit-chest { width: min(310px, 96%); padding: 10px 12px; }
+}
+
+.skill-path .skill-node.status-available { border-color: #46a800; background: #58cc02; }
+.skill-path .skill-node.status-completed { border-color: #46a800; background: #46a800; }
+.skill-path .skill-node.status-locked { border-color: #52636a; background: #37474f; }
+.unit-chest-icon { border: 2px solid #a56500; background: linear-gradient(180deg, #ffe02f 0 28%, #d58a00 28% 100%); }
+.unit-chest-icon svg { width: 42px; height: 42px; }
+
+
+/* Distinct unit characters live above the path, never on a lesson node. */
+.unit-mascot { position: relative; z-index: 2; display: flex; justify-content: flex-end; align-items: center; height: 84px; margin: 0 17% 0 0; overflow: visible; pointer-events: none; }
+.unit-mascot .duo-bird { flex: 0 0 68px; transform-origin: center bottom; }
+.unit-mascot-art { width: 122px; height: 96px; overflow: visible; filter: drop-shadow(0 4px 1px rgb(0 0 0 / 18%)); }
+
+/* Duo dances with alternating steps and flapping wings; no full-body roll. */
+.unit-one-dance { animation: bird-dance-step 1.55s ease-in-out infinite; }
+.unit-mascot-1 .duo-bird-body { animation: bird-body-bop .34s ease-in-out infinite alternate; transform-origin: center bottom; }
+.unit-mascot-1 .duo-bird-wing { animation: bird-dance-wing .24s ease-in-out infinite alternate; transform-origin: right center; }
+.unit-mascot-1 .duo-bird-feet { animation: bird-foot-shuffle .32s ease-in-out infinite alternate; }
+@keyframes bird-dance-step {
+  0%, 100% { transform: translate(0, 0) rotate(-3deg) scale(.94); }
+  20% { transform: translate(-6px, -5px) rotate(-10deg) scale(.96); }
+  40% { transform: translate(5px, 0) rotate(8deg) scale(.94); }
+  60% { transform: translate(1px, -7px) rotate(12deg) scale(.97); }
+  80% { transform: translate(-4px, -1px) rotate(-7deg) scale(.94); }
+}
+@keyframes bird-body-bop { from { transform: translateY(0) scaleY(1); } to { transform: translateY(-3px) scaleY(1.04); } }
+@keyframes bird-dance-wing { from { transform: rotate(-24deg) scaleY(.82); } to { transform: rotate(34deg) scaleY(1.12); } }
+@keyframes bird-foot-shuffle { from { transform: translateX(-2px); } to { transform: translateX(3px); } }
+
+/* Each learner/creature has its own little idle action. */
+.thinker-character { transform-box: fill-box; transform-origin: 50% 100%; animation: thinker-sway 2.8s ease-in-out infinite; }
+.pollinator-character { transform-box: fill-box; transform-origin: 50% 100%; animation: gardener-bounce 1.9s ease-in-out infinite; }
+.mascot-bee { transform-box: fill-box; transform-origin: center; animation: bee-buzz 1.5s ease-in-out infinite; }
+.bee-two { animation-delay: -.7s; }
+.fox-explorer { transform-box: fill-box; transform-origin: 50% 100%; animation: fox-walk 1.25s ease-in-out infinite; }
+.explorer-glass { transform-box: fill-box; transform-origin: 40% 40%; animation: glass-search 2s ease-in-out infinite; }
+.pink-dancer { transform-box: fill-box; transform-origin: 50% 100%; animation: pink-dance 1.6s ease-in-out infinite; }
+.dance-ball { transform-box: fill-box; transform-origin: center; animation: ball-bounce 1.6s ease-in-out infinite; }
+@keyframes thinker-sway { 0%, 100% { transform: rotate(2deg) translateY(0); } 50% { transform: rotate(-4deg) translateY(-3px); } }
+@keyframes gardener-bounce { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-5px) rotate(3deg); } }
+@keyframes bee-buzz { 0%, 100% { transform: translate(0, 0) rotate(-8deg); } 50% { transform: translate(5px, -8px) rotate(10deg); } }
+@keyframes fox-walk { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-5px) rotate(4deg); } }
+@keyframes glass-search { 0%, 100% { transform: rotate(-12deg); } 50% { transform: rotate(13deg); } }
+@keyframes pink-dance { 0%, 100% { transform: translateY(0) rotate(-4deg); } 25% { transform: translate(-4px, -5px) rotate(5deg); } 55% { transform: translate(3px, 0) rotate(-5deg); } 80% { transform: translate(0, -6px) rotate(7deg); } }
+@keyframes ball-bounce { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-7px) rotate(18deg); } }
+@media (max-width: 600px) { .unit-mascot { height: 74px; margin-right: 14%; } .unit-mascot-art { width: 108px; height: 86px; } }
+@media (prefers-reduced-motion: reduce) {
+  .unit-mascot *, .unit-mascot::before, .unit-mascot::after { animation: none !important; }
+}
+
+
+/* Keep the desktop course shell aligned to the viewport and sized for the available screen. */
+.page-shell {
+  width: min(100%, 1720px);
+  max-width: 1720px;
+  margin: 0;
+  padding: 0 0 64px;
+  grid-template-columns: clamp(220px, 14vw, 280px) minmax(0, 1fr) clamp(340px, 21vw, 420px);
+  column-gap: clamp(28px, 3vw, 59px);
+  justify-content: start;
+}
+.page-shell > * { min-width: 0; }
+.primary-nav { width: clamp(220px, 14vw, 280px); }
+.path-layout {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) clamp(340px, 21vw, 420px);
+  gap: clamp(18px, 2vw, 34px);
+}
+.units, .home-rail { min-width: 0; }
+.home-rail { max-height: calc(100dvh - 36px); }
+.page-shell:has(#lesson) .feedback-panel { left: clamp(220px, 14vw, 280px); }
+
+@media (max-width: 1440px) {
+  .page-shell {
+    grid-template-columns: 220px minmax(0, 1fr) 320px;
+    column-gap: 24px;
+    padding-right: 20px;
+  }
+  .primary-nav { width: 220px; }
+  .path-layout { grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; }
+  .page-shell:has(#lesson) .feedback-panel { left: 220px; }
+}
+
+@media (max-width: 1180px) {
+  .page-shell { grid-template-columns: 210px minmax(0, 1fr) 300px; column-gap: 22px; }
+  .primary-nav { width: 210px; padding-right: 12px; padding-left: 12px; }
+  .path-layout { grid-template-columns: minmax(0, 1fr) 300px; }
+  .page-shell:has(#lesson) .feedback-panel { left: 210px; }
+}
+
+@media (max-width: 900px) {
+  .page-shell { width: 100%; max-width: none; margin: 0; padding: 0 18px 90px; }
+  .primary-nav { width: 100%; }
+  .path-layout { display: flex; width: 100%; flex-direction: column-reverse; }
+  .units, .home-rail { width: 100%; }
+  .page-shell:has(#lesson) .feedback-panel { left: 0; }
+}
+
+@media (max-width: 760px) {
+  .page-shell { width: min(100% - 28px, 560px); margin-inline: auto; padding: 0 0 90px; }
+}
+
+
+@media (max-width: 600px) {
+  .primary-nav { gap: 2px; padding-right: 3px; padding-left: 3px; }
+  .nav-item { min-width: 0; font-size: 0; }
+  .nav-item span { width: auto; font-size: 20px; }
 }

@@ -1,6 +1,7 @@
 from sqlalchemy import select
 
 from app.db.session import SessionLocal
+from app.db.course_expansion import expand_course
 from app.models import (
     Course,
     Exercise,
@@ -214,6 +215,8 @@ def seed_database() -> None:
                 )
                 db.add(course)
                 db.flush()
+
+            expand_course(db, course)
 
             user = db.scalar(select(User).where(User.username == "demo-learner"))
 

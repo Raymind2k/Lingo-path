@@ -125,7 +125,7 @@ async function getJson<T>(url: string): Promise<T> {
   return response.json();
 }
 
-function RandomBird() {
+function RandomBird({ motionClass = "" }: { motionClass?: string }) {
   const [pose, setPose] = useState("center");
 
   useEffect(() => {
@@ -147,7 +147,7 @@ function RandomBird() {
   }, []);
 
   return (
-    <span className="duo-bird" aria-label="Duo the owl">
+    <span className={`duo-bird ${motionClass}`} aria-label="Duo the owl">
       <span className="duo-bird-body">
         <span className="duo-bird-wing" />
         <span className="duo-bird-feet">● ●</span>
@@ -160,6 +160,92 @@ function RandomBird() {
         <span className="duo-bird-beak" />
       </span>
     </span>
+  );
+}
+
+function UnitMascot({ position }: { position: number }) {
+  const labels: Record<number, string> = {
+    1: "Duo doing a dance",
+    2: "A purple-haired learner thinking",
+    3: "A gardener with buzzing bees",
+    4: "An orange fox explorer with a magnifying glass",
+    5: "A pink-hooded dancer holding a ball",
+  };
+
+  return (
+    <div className={`unit-mascot unit-mascot-${position}`} role="img" aria-label={labels[position] ?? "A cheerful course mascot"}>
+      {position === 1 ? <RandomBird motionClass="unit-one-dance" /> : null}
+      {position === 2 ? (
+        <svg className="unit-mascot-art" viewBox="0 0 120 100" aria-hidden="true">
+          <ellipse cx="60" cy="91" rx="31" ry="7" fill="#34474e" />
+          <g className="thinker-character">
+            <path d="M37 75c2-14 11-21 25-21s23 7 25 21l-3 9H40z" fill="#6641a5" />
+            <path d="M47 78c-7 3-13 8-13 13h24l3-13m12 0 8 13h19c-2-9-9-14-19-16" fill="#493174" />
+            <path d="M39 67c-9-5-12-12-8-17 4-4 10 0 16 6l8 8-7 9z" fill="#9b68f2" />
+            <circle cx="63" cy="37" r="22" fill="#ffc49e" />
+            <path d="M41 38c-4-18 8-32 24-31 18 1 27 15 21 32-6-2-12-7-16-14-5 10-17 15-29 13z" fill="#913df2" />
+            <path d="M43 38c-5 8-7 17-4 25 5-5 9-9 13-14z" fill="#b778ff" />
+            <ellipse cx="57" cy="41" rx="2" ry="3" fill="#26343a" />
+            <ellipse cx="72" cy="41" rx="2" ry="3" fill="#26343a" />
+            <path d="M60 51q6 5 12 0" fill="none" stroke="#a34b65" strokeWidth="2.5" strokeLinecap="round" />
+            <path d="M82 34c5-7 9-8 12-4" fill="none" stroke="#ffc49e" strokeWidth="6" strokeLinecap="round" />
+            <circle cx="96" cy="28" r="5" fill="#ffc49e" />
+          </g>
+        </svg>
+      ) : null}
+      {position === 3 ? (
+        <svg className="unit-mascot-art" viewBox="0 0 140 105" aria-hidden="true">
+          <ellipse cx="65" cy="94" rx="35" ry="7" fill="#34474e" />
+          <g className="pollinator-character">
+            <path d="M45 57q19-12 38 0l10 31H38z" fill="#21cfa1" />
+            <path d="M47 76 36 91h17l11-14m18-1 11 15h17L91 71" fill="#148ec0" />
+            <circle cx="66" cy="35" r="20" fill="#e9a082" />
+            <path d="M46 34q0-26 22-25 20 1 20 23l-12-8-7-9-7 10z" fill="#37353a" />
+            <path d="M48 52q17 7 34-2l9 31H40z" fill="#f49acc" />
+            <path d="M48 57 35 70m38-12 12-13" fill="none" stroke="#e9a082" strokeWidth="8" strokeLinecap="round" />
+            <circle cx="60" cy="37" r="2" fill="#26343a" />
+            <circle cx="74" cy="37" r="2" fill="#26343a" />
+            <path d="M62 45q5 4 10 0" fill="none" stroke="#9b4c55" strokeWidth="2" strokeLinecap="round" />
+            <path d="M82 43q12-13 20-12" fill="none" stroke="#5cae2b" strokeWidth="3" />
+            <path d="M100 31q-5-9 2-12 5 7 0 12m0 0q10-6 13 2-7 4-13-2m0 0q1 11-7 12-3-7 7-12" fill="#ffdf21" />
+          </g>
+          <g className="mascot-bee bee-one"><ellipse cx="22" cy="34" rx="8" ry="5" fill="#ffd928" /><path d="M18 30v9m6-9v9" stroke="#423b23" strokeWidth="2" /><ellipse cx="18" cy="27" rx="4" ry="3" fill="#d7f6ff" /><ellipse cx="26" cy="27" rx="4" ry="3" fill="#d7f6ff" /></g>
+          <g className="mascot-bee bee-two"><ellipse cx="116" cy="57" rx="8" ry="5" fill="#ffd928" /><path d="M112 53v9m6-9v9" stroke="#423b23" strokeWidth="2" /><ellipse cx="112" cy="50" rx="4" ry="3" fill="#d7f6ff" /><ellipse cx="120" cy="50" rx="4" ry="3" fill="#d7f6ff" /></g>
+        </svg>
+      ) : null}
+      {position === 4 ? (
+        <svg className="unit-mascot-art" viewBox="0 0 130 105" aria-hidden="true">
+          <ellipse cx="61" cy="94" rx="34" ry="7" fill="#34474e" />
+          <g className="fox-explorer">
+            <path d="m41 30-6-23 23 14m15 0L94 7l-6 27" fill="#f28a35" stroke="#c85b24" strokeWidth="3" strokeLinejoin="round" />
+            <ellipse cx="65" cy="39" rx="29" ry="27" fill="#f28a35" />
+            <path d="M43 47q22-19 44 0-5 19-22 20-17-1-22-20" fill="#fff1ce" />
+            <ellipse cx="55" cy="38" rx="3" ry="5" fill="#29333a" /><ellipse cx="75" cy="38" rx="3" ry="5" fill="#29333a" />
+            <path d="m62 48 4 3 4-3" fill="#713b2e" />
+            <path d="M45 65q20-10 40 0l10 23H38z" fill="#258ed0" />
+            <path d="M45 80 36 93h19l9-13m15 0 10 13h19L91 77" fill="#344c82" />
+            <path d="M45 68 33 79m46-11 9-8" fill="none" stroke="#f28a35" strokeWidth="8" strokeLinecap="round" />
+          </g>
+          <g className="explorer-glass"><circle cx="99" cy="61" r="12" fill="#93e7f2" fillOpacity=".65" stroke="#ffe04a" strokeWidth="5" /><path d="m108 70 11 12" stroke="#b77935" strokeWidth="6" strokeLinecap="round" /></g>
+        </svg>
+      ) : null}
+      {position === 5 ? (
+        <svg className="unit-mascot-art" viewBox="0 0 130 110" aria-hidden="true">
+          <ellipse cx="59" cy="101" rx="35" ry="6" fill="#34474e" />
+          <g className="pink-dancer">
+            <path d="M38 37c-2-20 10-33 29-33s33 13 30 34c-1 8-7 14-14 17H48c-7-4-10-10-10-18" fill="#ff9bd3" />
+            <ellipse cx="66" cy="39" rx="20" ry="22" fill="#f3b18e" />
+            <path d="M48 31q3-18 20-18 13 0 18 14-10-4-17-12-8 13-21 16" fill="#292d39" />
+            <ellipse cx="60" cy="40" rx="2" ry="3" fill="#28333a" /><ellipse cx="73" cy="40" rx="2" ry="3" fill="#28333a" />
+            <path d="M61 49q5 3 10-1" fill="none" stroke="#9a4b5f" strokeWidth="2" strokeLinecap="round" />
+            <path d="M48 59q18 8 36 0l12 24-20 9H48L37 78z" fill="#ee68b7" />
+            <path d="m49 83-10 13h18l9-13m12 2 11 11h17L94 78" fill="#ffb5dd" />
+            <path d="m48 62-12 15m44-15 15 7" fill="none" stroke="#f3b18e" strokeWidth="8" strokeLinecap="round" />
+          </g>
+          <g className="dance-ball"><circle cx="104" cy="69" r="12" fill="#a05cff" /><path d="M94 67q10-8 20 0m-11-10q8 12 0 24" fill="none" stroke="#d8b7ff" strokeWidth="3" /></g>
+        </svg>
+      ) : null}
+    </div>
   );
 }
 
@@ -180,6 +266,9 @@ export default function Home() {
   const [outOfHearts, setOutOfHearts] = useState(false);
   const [refillingHearts, setRefillingHearts] = useState(false);
   const [xpEarned, setXpEarned] = useState(0);
+  const [gems, setGems] = useState(39);
+  const [claimedChests, setClaimedChests] = useState<Record<number, boolean>>({});
+  const [chestMessage, setChestMessage] = useState<string | null>(null);
 
   const [selectedChoice, setSelectedChoice] = useState("");
   const [selectedWordIndexes, setSelectedWordIndexes] = useState<number[]>([]);
@@ -216,6 +305,17 @@ export default function Home() {
   }, [refreshDashboard]);
 
   useEffect(() => {
+    try {
+      const storedGems = Number(window.localStorage.getItem("lingo-path-gems"));
+      if (Number.isFinite(storedGems) && storedGems >= 39) setGems(storedGems);
+      const storedChests = window.localStorage.getItem("lingo-path-chests");
+      if (storedChests) setClaimedChests(JSON.parse(storedChests) as Record<number, boolean>);
+    } catch {
+      // A malformed local demo save should not stop the learning path from loading.
+    }
+  }, []);
+
+  useEffect(() => {
   const savedTheme = window.localStorage.getItem("lingo-path-theme");
   const useDarkMode = savedTheme !== "light";
 
@@ -233,6 +333,18 @@ export default function Home() {
   useEffect(() => {
     if (outOfHearts && profile && profile.hearts > 0) setOutOfHearts(false);
   }, [outOfHearts, profile]);
+
+  function openUnitChest(unitId: number, unitTitle: string) {
+    const unit = path?.course.units.find((item) => item.id === unitId);
+    if (!unit || unit.skills.some((skill) => skill.progress.status !== "completed") || claimedChests[unitId]) return;
+    const nextClaims = { ...claimedChests, [unitId]: true };
+    const nextGems = gems + 50;
+    setClaimedChests(nextClaims);
+    setGems(nextGems);
+    setChestMessage(`${unitTitle} chest opened! You collected 50 gems.`);
+    window.localStorage.setItem("lingo-path-chests", JSON.stringify(nextClaims));
+    window.localStorage.setItem("lingo-path-gems", String(nextGems));
+  }
 
   async function openLesson(lessonId: number) {
     setLesson(null);
@@ -569,9 +681,9 @@ export default function Home() {
           <span>🔥 Current streak</span>
           <strong>{profile.current_streak} days</strong>
         </div>
-        <div className="sidebar-stat mock-gem-stat" aria-label="39 gems (mock balance)">
+        <div className="sidebar-stat mock-gem-stat" aria-label={`${gems} gems (mock balance)`}>
           <span>💎 Gems</span>
-          <strong>39</strong>
+          <strong>{gems}</strong>
         </div>
       </section>
 
@@ -865,6 +977,7 @@ export default function Home() {
                       <strong>Learning path</strong>
                       <span>{completedSkills}/{unit.skills.length} skills complete</span>
                     </div>
+                    <UnitMascot position={unit.position} />
                     <div className="skills-list skill-path">
                       {unit.skills.map((skill, index) => {
                         const canOpen = skill.progress.status === "available" || skill.progress.status === "completed";
@@ -882,7 +995,6 @@ export default function Home() {
                                 {skill.progress.status === "completed" ? "✓" : canOpen ? "★" : "🔒"}
                               </span>
                             </button>
-                            {canOpen && <span className="bird-companion"><RandomBird /></span>}
                             <div className="skill-info">
                               <strong>{skill.title}</strong>
                               <span className="skill-progress-copy">{skill.lessons.length} lesson{skill.lessons.length === 1 ? "" : "s"}</span>
@@ -895,6 +1007,27 @@ export default function Home() {
                           </div>
                         );
                       })}
+                      <div className="unit-chest-wrap">
+                        <button
+                          className={`unit-chest${completedSkills === unit.skills.length ? " chest-ready" : ""}${claimedChests[unit.id] ? " chest-claimed" : ""}`}
+                          disabled={completedSkills !== unit.skills.length || Boolean(claimedChests[unit.id])}
+                          onClick={() => openUnitChest(unit.id, unit.title)}
+                          type="button"
+                        >
+                          <span className="unit-chest-icon" aria-hidden="true">
+                            <svg viewBox="0 0 48 48" focusable="false">
+                              <path d="M7 19h34v23H7z" fill="#b66a00" />
+                              <path d="M4 11h40v12H4z" fill="#ffe02f" />
+                              <path d="M8 24h32v13H8z" fill="#e9a900" />
+                              <path d="M20 20h8v12h-8z" rx="2" fill="#8a4c00" />
+                              <circle cx="24" cy="25" r="2" fill="#ffe02f" />
+                              <path d="M22 26h4v4h-4z" fill="#ffe02f" />
+                            </svg>
+                          </span>
+                          <span><strong>{claimedChests[unit.id] ? "Chest opened" : "Unit reward chest"}</strong><small>{claimedChests[unit.id] ? "50 gems collected" : completedSkills === unit.skills.length ? "Open to collect 50 gems" : `${completedSkills}/${unit.skills.length} skills complete`}</small></span>
+                          <span className="chest-gem">💎</span>
+                        </button>
+                      </div>
                     </div>
                   </article>
                 );
@@ -946,6 +1079,17 @@ export default function Home() {
             </aside>
           </div>
         </>
+      )}
+      {chestMessage && (
+        <div className="celebration-backdrop" role="presentation">
+          <section className="celebration-modal" role="dialog" aria-modal="true" aria-labelledby="chest-reward-title">
+            <span className="celebration-icon" aria-hidden="true">🎁</span>
+            <p className="eyebrow">UNIT REWARD</p>
+            <h1 id="chest-reward-title">Treasure time!</h1>
+            <p>{chestMessage}</p>
+            <button className="primary-action" onClick={() => setChestMessage(null)} type="button">Continue learning</button>
+          </section>
+        </div>
       )}
       {outOfHearts && lesson && (
         <div className="celebration-backdrop" role="presentation">
