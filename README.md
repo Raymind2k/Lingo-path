@@ -122,3 +122,7 @@ The desktop Learn page now uses a compact header band with learner stats aligned
 ## Learning path scale follow-up
 
 The full-page desktop path now uses larger circular lesson nodes, completion/status icons, and row spacing. Character placement remains seeded but sits closer to the node path. Duo’s fixed-size illustration is scaled as a complete character per size tier, keeping its head and body aligned during the dance. The changes target the difference between the full Learn page and the focused unit view while preserving the responsive layout.
+
+## Scroll-aware unit title
+
+The Learn path shows the unit topic on a thin divider before the colored unit banner. One shared banner stays pinned while the learner scrolls through the path. When the next unit’s topic divider reaches the bottom edge of that banner, its title, unit number, and theme color switch together; scrolling upward switches back to the previous unit. This keeps the title visible above the learning path without stacking multiple sticky banners.

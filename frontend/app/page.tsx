@@ -356,6 +356,7 @@ export default function Home() {
   const [gems, setGems] = useState(39);
   const [claimedChests, setClaimedChests] = useState<Record<number, boolean>>({});
   const [chestMessage, setChestMessage] = useState<string | null>(null);
+  const [activeUnitId, setActiveUnitId] = useState<number | null>(null);
 
   const [selectedChoice, setSelectedChoice] = useState("");
   const [selectedWordIndexes, setSelectedWordIndexes] = useState<number[]>([]);
@@ -391,6 +392,48 @@ export default function Home() {
     // Read the initial route query once, without restarting a lesson on state changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshDashboard]);
+
+  useEffect(() => {
+    if (!path || lesson) return;
+
+    const dividers = Array.from(
+      document.querySelectorAll<HTMLElement>(".unit-topic-divider[data-unit-id]"),
+    );
+    if (dividers.length === 0) return;
+
+    let frame = 0;
+    const updateActiveUnit = () => {
+      frame = 0;
+      const banner = document.querySelector<HTMLElement>(".active-unit-banner");
+      const handoffLine = (banner?.getBoundingClientRect().height ?? 0) + 14;
+      let activeDivider = dividers[0];
+
+      for (const divider of dividers) {
+        if (divider.getBoundingClientRect().top <= handoffLine) {
+          activeDivider = divider;
+        } else {
+          break;
+        }
+      }
+
+      const nextUnitId = Number(activeDivider.dataset.unitId);
+      if (Number.isFinite(nextUnitId)) {
+        setActiveUnitId((currentUnitId) => currentUnitId === nextUnitId ? currentUnitId : nextUnitId);
+      }
+    };
+    const scheduleUpdate = () => {
+      if (frame === 0) frame = window.requestAnimationFrame(updateActiveUnit);
+    };
+
+    updateActiveUnit();
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
+    return () => {
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+      if (frame !== 0) window.cancelAnimationFrame(frame);
+    };
+  }, [path?.course.units, lesson]);
 
   useEffect(() => {
     try {
@@ -719,6 +762,9 @@ export default function Home() {
         ? Boolean(selectedChoice)
         : Boolean(typedAnswer.trim());
   const dailyQuests = profile.daily_quests ?? [];
+  const firstUnit = path.course.units[0] ?? null;
+  const firstUnitCompletedSkills = firstUnit?.skills.filter((skill) => skill.progress.status === "completed").length ?? 0;
+  const activeUnit = path.course.units.find((unit) => unit.id === activeUnitId) ?? firstUnit;
 
   return (
     <main className="page-shell">
@@ -997,24 +1043,40 @@ export default function Home() {
 
           <div className="path-layout">
             <section className="units" aria-label="Course learning path">
-              {path.course.units.map((unit) => {
+              {firstUnit && (
+                <div className="unit-subheading first-unit-topic">
+                  <div className="unit-topic-divider" data-unit-id={firstUnit.id} aria-label={`Unit topic: ${firstUnit.title}`}>
+                    <span>{firstUnit.description ?? firstUnit.title}</span>
+                  </div>
+                  <span className="unit-progress-copy">{firstUnitCompletedSkills}/{firstUnit.skills.length} skills complete</span>
+                </div>
+              )}
+              {activeUnit && (
+                <header
+                  className={`unit-banner active-unit-banner course-unit-theme-${((activeUnit.position - 1) % 5) + 1}`}
+                  aria-live="polite"
+                  aria-label={`Section 1, unit ${activeUnit.position}: ${activeUnit.title}`}
+                >
+                  <div>
+                    <p className="unit-number">SECTION 1 · UNIT {activeUnit.position}</p>
+                    <h2>{activeUnit.title}</h2>
+                    {activeUnit.description && <p>{activeUnit.description}</p>}
+                  </div>
+                  <span className="unit-banner-stamp" aria-hidden="true">{String(activeUnit.position).padStart(2, "0")}</span>
+                </header>
+              )}
+              {path.course.units.map((unit, unitIndex) => {
                 const completedSkills = unit.skills.filter((skill) => skill.progress.status === "completed").length;
                 return (
                   <article className={`unit-card course-unit course-unit-theme-${((unit.position - 1) % 5) + 1}`} key={unit.id}>
-                    <div className="unit-subheading">
-                      <div className="unit-topic-divider" aria-label={`Unit topic: ${unit.title}`}>
-                        <span>{unit.description ?? unit.title}</span>
+                    {unitIndex > 0 && (
+                      <div className="unit-subheading">
+                        <div className="unit-topic-divider" data-unit-id={unit.id} aria-label={`Unit topic: ${unit.title}`}>
+                          <span>{unit.description ?? unit.title}</span>
+                        </div>
+                        <span className="unit-progress-copy">{completedSkills}/{unit.skills.length} skills complete</span>
                       </div>
-                      <span className="unit-progress-copy">{completedSkills}/{unit.skills.length} skills complete</span>
-                    </div>
-                    <header className="unit-banner">
-                      <div>
-                        <p className="unit-number">SECTION 1 · UNIT {unit.position}</p>
-                        <h2>{unit.title}</h2>
-                        {unit.description && <p>{unit.description}</p>}
-                      </div>
-                      <span className="unit-banner-stamp" aria-hidden="true">{String(unit.position).padStart(2, "0")}</span>
-                    </header>
+                    )}
                     <UnitMascot position={unit.position} unitId={unit.id} />
                     <div className="skills-list skill-path">
                       {unit.skills.map((skill, index) => {

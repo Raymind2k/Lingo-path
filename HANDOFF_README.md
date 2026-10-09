@@ -1,8 +1,8 @@
 # Lingo Path - Chat Handoff
 
-Last updated: 2026-10-09 (larger desktop path and mascot scale)
+Last updated: 2026-10-09 (scroll-aware unit title handoff)
 
-This file is a working handoff for continuing the Lingo Path project in another chat. Read it together with the root `README.md`, then inspect the current working tree before editing anything. The Git working tree has local changes that must be preserved.
+This file is a working handoff for continuing the Lingo Path project in another chat. Read it together with the root `README.md`, then inspect the current working tree before editing anything. Preserve any user changes already present in the checkout.
 
 ## Project goal
 
@@ -24,9 +24,9 @@ The user cares strongly about the UI feeling like Duolingo rather than a generic
 - Shared navigation and section pages are under `frontend/app/components/` and route folders.
 - Separate routes exist for Practice, Leaderboards, Quests, Shop, Profile, and More/settings.
 - The UI has a dark-first theme and a saved light/dark preference. Nunito is loaded through `next/font/google` for consistent rounded typography across headings, navigation, lesson controls, and body text. Duolingo proprietary Feather/DIN fonts are not included.
-- The learning path has five seeded units and 23 skills, status states for locked/available/completed nodes, crowns/progress, unit chests, and animated decorative mascots. Each unit position cycles through green, pink, teal, orange, and blue themes applied to its banner and available/completed skill nodes. Completed skill nodes and completed quest tasks use star markers; unit paths remain directly on the dark page surface without a lighter enclosing card. Each unit path displays its teaching topic between thin horizontal lines before the colored unit banner. The banner sticks to the top as the learner scrolls through that unit and yields to the next banner. Unit banners and node accents share distinct colors, including a pink second unit. Each unit also ends with a slim divider. Duo is a fixed-size character inside the independently-scaled mascot wrapper so its head and body stay aligned during the dance. Mascot placements were moved closer to the skill path and all size tiers were increased while retaining spacing from nodes. Path headings, skill titles, and support text were increased for readability. Mascot sizes are seeded but intentionally contrasted, with a different scale for each member of two-mascot units. Duo dances; the thinker floats/sways, gardener bobs, fox steps, and dancer sways/dances. The current path layout and mascot locations are CSS-driven and responsive.
+- The learning path has five seeded units and 23 skills, status states for locked/available/completed nodes, crowns/progress, unit chests, and animated decorative mascots. Each unit position cycles through green, pink, teal, orange, and blue themes applied to its banner and available/completed skill nodes. Completed skill nodes and completed quest tasks use star markers; unit paths remain directly on the dark page surface without a lighter enclosing card. The first teaching topic appears on a thin divider above one shared colored unit banner. That banner stays pinned over the path and updates its title, unit number, and color when the next topic divider reaches the banner; it reverses correctly when scrolling upward. Each unit also ends with a slim divider. Duo is a fixed-size character inside the independently-scaled mascot wrapper so its head and body stay aligned during the dance. Mascot placements were moved closer to the skill path and all size tiers were increased while retaining spacing from nodes. Path headings, skill titles, and support text were increased for readability. Mascot sizes are seeded but intentionally contrasted, with a different scale for each member of two-mascot units. Duo dances; the thinker floats/sways, gardener bobs, fox steps, and dancer sways/dances. The current path layout and mascot locations are CSS-driven and responsive.
 - Lesson types include multiple choice, typed answers, word bank/translation, matching, and fill-in-the-blank. The lesson screen has an answer progress bar, heart display, check button, lesson completion state, and out-of-hearts recovery dialog.
-- Latest local UI work aligns answer feedback more closely with the reference: correct answers highlight the correct choice green, advance the displayed lesson progress, show "Awesome!", and provide Continue plus Too Easy / Too Difficult / Report options. Those reaction buttons are local to the current lesson session and do not submit API answers or change XP/hearts. Incorrect answers show the expected answer and explanation, the backend deducts a heart, and the frontend offers a retry. At zero hearts, a recovery/refill dialog appears.
+- The answer feedback aligns with the reference: correct answers highlight the correct choice green, advance the displayed lesson progress, show "Awesome!", and provide Continue plus Too Easy / Too Difficult / Report options. Those reaction buttons are local to the current lesson session and do not submit API answers or change XP/hearts. Incorrect answers show the expected answer and explanation, the backend deducts a heart, and the frontend offers a retry. At zero hearts, a recovery/refill dialog appears.
 - The app layout has responsive desktop sizing and a compact mobile treatment. The lesson canvas and illustrated choices use a wider desktop layout, while the response tray spans the viewport with the Duolingo-style feedback and Continue action. The narrower mobile treatment remains in place.
 
 ### Backend
@@ -55,19 +55,12 @@ The user cares strongly about the UI feeling like Duolingo rather than a generic
 
 ## Current Git state - important
 
-- Branch: `main`
-- `HEAD` and `origin/main`: `a091041` (`Expand learning path and update project docs`)
-- Current working tree has **uncommitted local modifications** in:
-  - `README.md`
-  - `HANDOFF_README.md`
-  - `frontend/app/components/SectionPage.tsx`
-  - `frontend/app/page.tsx`
-  - `frontend/app/globals.css`
-- These changes are intentional. They include current lesson/player/path UI work and latest answer-response refinements. Do not reset, checkout over, or replace them with code copied from an older chat excerpt. Inspect `git diff` first and preserve the changes.
-- For the latest UI edits, `git diff --check` and `npm run build` completed successfully. `npm run lint` still reports existing `react-hooks/set-state-in-effect` and Next.js anchor-navigation violations in `page.tsx` and `SectionPage.tsx`; the production build succeeds. Live browser screenshot inspection was blocked by the browser access policy, so route layout was audited in source and all routes were confirmed in the production build. Avoid submitting lesson answers during visual inspection because that changes the demo learner progress.
-- No commit or push was requested for the latest local edits. Do not commit or push unless the user asks.
+- Branch: `main`. The pre-handoff desktop path/mascot changes were committed as `5067877` (`Scale desktop learning path and mascots`) and pushed to `origin/main` before the scroll-aware unit-title implementation, as requested.
+- The scroll-aware sticky title handoff is the newest learning-path change. Check `git status --short --branch` and `git log -5 --oneline` before continuing to see its current commit state.
+- Preserve all intentional work. Do not reset, checkout over, or replace it with code copied from an older chat excerpt. Inspect `git diff` first if the working tree is not clean.
+- The title-handoff implementation passed `git diff --check` and the frontend production build (`npm run build`). `npm run lint` previously reported existing `react-hooks/set-state-in-effect` and Next.js anchor-navigation violations in `page.tsx` and `SectionPage.tsx`; the production build succeeds. Live browser screenshot inspection was blocked by the browser access policy, so do not claim it was visually checked in a live browser. Avoid submitting lesson answers during visual inspection because that changes demo learner progress.
 
-### Recent commits already on `main` (oldest to newest)
+### Earlier project commits on `main`
 
 - `8a800b8` Initialize Lingo Path project
 - `33f0a86` Add project README
@@ -79,6 +72,8 @@ The user cares strongly about the UI feeling like Duolingo rather than a generic
 - `ab962fe` Complete lesson progress and recovery flows
 - `ee7f07e` Polish Duolingo-style learning path dashboard
 - `a091041` Expand learning path and update project docs
+- `3ff7d00` Polish unit learning path and lesson UI
+- `5067877` Scale desktop learning path and mascots
 
 ## Start the app on Windows
 
@@ -136,4 +131,8 @@ The learning page's desktop top area now places the learner stats on the same ho
 
 ## Follow-up to desktop path comparison
 
-The full Learn page was compared again against the focused unit screenshot. Desktop lesson nodes, node symbols, row spacing, skill text, and quest labels are larger to restore the path’s visual weight. Mascot placements sit closer to nodes, and Duo has a scaling wrapper so size tiers enlarge the complete owl while keeping its head/body animation aligned. These UI changes remain local and uncommitted.
+The full Learn page was compared again against the focused unit screenshot. Desktop lesson nodes, node symbols, row spacing, skill text, and quest labels are larger to restore the path’s visual weight. Mascot placements sit closer to nodes, and Duo has a scaling wrapper so size tiers enlarge the complete owl while keeping its head/body animation aligned. These changes were included in commit `5067877` and pushed to `main` before the separate title handoff update.
+
+## Scroll-aware unit title handoff
+
+The first unit’s topic divider sits before a shared sticky colored banner. As a later unit topic divider reaches just below the banner, the banner switches to that unit’s number, title, and color. The same threshold works while scrolling upward. Implementation is in `frontend/app/page.tsx` and `frontend/app/globals.css`; the root README now documents the behavior. The production build completed successfully after the change.
