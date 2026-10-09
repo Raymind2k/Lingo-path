@@ -217,7 +217,7 @@ export default function Home() {
 
   useEffect(() => {
   const savedTheme = window.localStorage.getItem("lingo-path-theme");
-  const useDarkMode = savedTheme === "dark";
+  const useDarkMode = savedTheme !== "light";
 
   setDarkMode(useDarkMode);
   document.documentElement.dataset.theme = useDarkMode ? "dark" : "light";
@@ -849,226 +849,100 @@ export default function Home() {
 
           <div className="path-layout">
             <section className="units" aria-label="Course learning path">
-              {path.course.units.map((unit) => (
-                <article className="unit-card" key={unit.id}>
-                  <p className="unit-number">UNIT {unit.position}</p>
-                  <h2>{unit.title}</h2>
-                  {unit.description && <p>{unit.description}</p>}
-
-                  <div className="skills-list">
-                    {unit.skills.map((skill) => {
-                      const canOpen =
-                        skill.progress.status === "available" ||
-                        skill.progress.status === "completed";
-                      const firstLesson = skill.lessons[0];
-
-                      return (
-                        <button
-                          className={`skill-card status-${skill.progress.status}`}
-                          disabled={!canOpen || !firstLesson || lessonLoading}
-                          key={skill.id}
-                          onClick={() => {
-                            if (firstLesson) openLesson(firstLesson.id);
-                          }}
-                          style={{
-                            width: "100%",
-                            textAlign: "left",
-                            font: "inherit",
-                            cursor:
-                              canOpen && firstLesson ? "pointer" : "not-allowed",
-                          }}
-                          type="button"
-                        >
-                          <span className="skill-icon" aria-hidden="true">
-                            {skill.progress.status === "completed"
-                              ? "✓"
-                              : canOpen
-                                ? "★"
-                                : "🔒"}
-                          </span>
-                          {canOpen && (
-                            <span className="bird-companion">
-                              <RandomBird />
-                            </span>
-                          )}
-                          <span className="skill-info">
-                            <strong>{skill.title}</strong>
-                            <p className="skill-progress-copy">
-                              {skill.lessons.length} lesson{skill.lessons.length === 1 ? "" : "s"} · {skill.progress.crowns}/5 crowns
-                              <span className={`crowns-ring crowns-${skill.progress.crowns}`} aria-label={`${skill.progress.crowns} of 5 crowns`} title={`${skill.progress.crowns} of 5 crowns`}>★</span>
-                            </p>
-                            {skill.lessons.map((item) => (
-                              <span className="lesson-label" key={item.id}>
-                                {item.title} · {item.xp_reward} XP
+              {path.course.units.map((unit) => {
+                const completedSkills = unit.skills.filter((skill) => skill.progress.status === "completed").length;
+                return (
+                  <article className="unit-card course-unit" key={unit.id}>
+                    <header className="unit-banner">
+                      <div>
+                        <p className="unit-number">SECTION 1 · UNIT {unit.position}</p>
+                        <h2>{unit.title}</h2>
+                        {unit.description && <p>{unit.description}</p>}
+                      </div>
+                      <span className="unit-banner-stamp" aria-hidden="true">{String(unit.position).padStart(2, "0")}</span>
+                    </header>
+                    <div className="unit-subheading">
+                      <strong>Learning path</strong>
+                      <span>{completedSkills}/{unit.skills.length} skills complete</span>
+                    </div>
+                    <div className="skills-list skill-path">
+                      {unit.skills.map((skill, index) => {
+                        const canOpen = skill.progress.status === "available" || skill.progress.status === "completed";
+                        const firstLesson = skill.lessons[0];
+                        return (
+                          <div className={`skill-step ${index % 2 === 0 ? "skill-step-left" : "skill-step-right"}`} key={skill.id}>
+                            <button
+                              aria-label={`${skill.title}, ${skill.progress.status}, ${skill.progress.crowns} crowns`}
+                              className={`skill-card skill-node status-${skill.progress.status}`}
+                              disabled={!canOpen || !firstLesson || lessonLoading}
+                              onClick={() => { if (firstLesson) openLesson(firstLesson.id); }}
+                              type="button"
+                            >
+                              <span className="skill-icon" aria-hidden="true">
+                                {skill.progress.status === "completed" ? "✓" : canOpen ? "★" : "🔒"}
                               </span>
-                            ))}
-                          </span>
-                          <span className="status-label">
-                            {skill.progress.status}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </article>
-              ))}
+                            </button>
+                            {canOpen && <span className="bird-companion"><RandomBird /></span>}
+                            <div className="skill-info">
+                              <strong>{skill.title}</strong>
+                              <span className="skill-progress-copy">{skill.lessons.length} lesson{skill.lessons.length === 1 ? "" : "s"}</span>
+                              {firstLesson && <span className="lesson-label">{firstLesson.title} · {firstLesson.xp_reward} XP</span>}
+                              <span className="crown-pips" aria-label={`${skill.progress.crowns} of 5 crowns`}>
+                                {Array.from({ length: 5 }, (_, crown) => <i className={crown < skill.progress.crowns ? "crown-earned" : ""} key={crown}>★</i>)}
+                              </span>
+                            </div>
+                            <span className="status-label">{skill.progress.status}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </article>
+                );
+              })}
             </section>
 
-            <aside className="sidebar-card">
-              <p className="eyebrow">DAILY GOAL</p>
-              <h2>
-                {Math.min(profile.today_xp, profile.daily_xp_goal)} /{" "}
-                {profile.daily_xp_goal} XP
-              </h2>
-              <progress
-                aria-label="Daily XP goal progress"
-                max={profile.daily_xp_goal || 1}
-                value={Math.min(profile.today_xp, profile.daily_xp_goal)}
-                style={{ width: "100%", accentColor: "#58a700" }}
-              />
-              <p>
-                {profile.daily_goal_met
-                  ? "Daily goal complete!"
-                  : "Keep learning to reach your goal."}
-              </p>
-              <div className="sidebar-stat">
-                <span>Longest streak</span>
-                <strong>{profile.longest_streak} days</strong>
-              </div>
-              <div className="sidebar-stat">
-                <span>Course units</span>
-                <strong>{path.course.units.length}</strong>
-              </div>
+            <aside className="home-rail" aria-label="Your learning progress">
+              <section className="rail-card goal-card">
+                <p className="eyebrow">DAILY GOAL</p>
+                <h2>{Math.min(profile.today_xp, profile.daily_xp_goal)} <span>/ {profile.daily_xp_goal} XP</span></h2>
+                <progress aria-label="Daily XP goal progress" max={profile.daily_xp_goal || 1} value={Math.min(profile.today_xp, profile.daily_xp_goal)} />
+                <p>{profile.daily_goal_met ? "Daily goal complete! Come back tomorrow." : "A little practice goes a long way."}</p>
+                <div className="rail-stat"><span>Longest streak</span><b>{profile.longest_streak} days</b></div>
+              </section>
 
-              <section
-                className="daily-quests"
-                id="daily-quests"
-                aria-labelledby="daily-quests-title"
-              >
+              <section className="rail-card league-card">
+                <div className="league-card-top"><span aria-hidden="true">🏆</span><p className="eyebrow">LEADERBOARDS</p></div>
+                <h3>{profile.current_streak > 0 ? "Keep your place this week" : "Your league starts here"}</h3>
+                <p>Complete a lesson to climb the weekly leaderboard.</p>
+                <a className="rail-link" href="/leaderboards">GO TO LEADERBOARDS <span aria-hidden="true">→</span></a>
+              </section>
+
+              <section className="rail-card quest-rail-card" aria-labelledby="daily-quests-title">
                 <div className="quests-heading">
-                  <p className="eyebrow">DAILY QUESTS</p>
-                  <span className="quest-reset">TODAY</span>
+                  <div><p className="eyebrow">DAILY QUESTS</p><h3 id="daily-quests-title">A few goals for today</h3></div>
+                  <a className="rail-link rail-link-small" href="/quests">VIEW ALL</a>
                 </div>
-                <h3 id="daily-quests-title">Small goals, big progress</h3>
                 <div className="quest-list">
                   {dailyQuests.map((quest) => {
                     const progress = quest.progress;
                     const completed = quest.completed;
-
                     return (
-                      <article
-                        className={`quest-card${completed ? " quest-complete" : ""}`}
-                        key={quest.id}
-                      >
-                        <span className="quest-icon" aria-hidden="true">
-                          {quest.icon}
-                        </span>
+                      <article className={`quest-card${completed ? " quest-complete" : ""}`} key={quest.id}>
+                        <span className="quest-icon" aria-hidden="true">{quest.icon}</span>
                         <div className="quest-details">
                           <strong>{quest.title}</strong>
                           <div className="quest-progress-row">
-                            <progress
-                              max={quest.target}
-                              value={progress}
-                              aria-label={`${quest.title} progress`}
-                            />
-                            <span>
-                              {progress}/{quest.target}
-                            </span>
+                            <progress max={quest.target} value={progress} aria-label={`${quest.title} progress`} />
+                            <span>{progress}/{quest.target}</span>
                           </div>
                         </div>
-                        <span
-                          className="quest-check"
-                          aria-label={completed ? "Completed" : "In progress"}
-                        >
-                          {completed ? "✓" : "›"}
-                        </span>
+                        <span className="quest-check" aria-label={completed ? "Completed" : "In progress"}>{completed ? "✓" : "›"}</span>
                       </article>
                     );
                   })}
                 </div>
               </section>
-
-              <div style={{ marginTop: 24 }}>
-                <p className="eyebrow" id="achievements">ACHIEVEMENTS</p>
-                <div style={{ display: "grid", gap: 10 }}>
-                  {(profile.achievements ?? []).map((achievement) => (
-                    <article
-                      key={achievement.id}
-                      style={{
-                        display: "flex",
-                        alignItems: "flex-start",
-                        gap: 12,
-                        padding: 12,
-                        border: "1px solid #e2e8f0",
-                        borderRadius: 12,
-                        background: achievement.unlocked
-                          ? "#f5fce9"
-                          : "#f8fafc",
-                        opacity: achievement.unlocked ? 1 : 0.6,
-                      }}
-                    >
-                      <span aria-hidden="true" style={{ fontSize: 24 }}>
-                        {achievement.icon}
-                      </span>
-                      <div>
-                        <strong>{achievement.title}</strong>
-                        <p style={{ margin: "4px 0", color: "#60728a" }}>
-                          {achievement.description}
-                        </p>
-                        <small>
-                          {achievement.unlocked
-                            ? "Unlocked"
-                            : "Not unlocked yet"}
-                        </small>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ marginTop: 24 }}>
-                <p className="eyebrow" id="leaderboard">LEADERBOARD</p>
-                <div style={{ display: "grid", gap: 8 }}>
-                  {leaderboard.map((entry) => {
-                    const isCurrentLearner =
-                      entry.username === profile.username;
-
-                    return (
-                      <article
-                        key={entry.username}
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "32px 1fr auto",
-                          alignItems: "center",
-                          gap: 8,
-                          padding: 10,
-                          border: "1px solid #e2e8f0",
-                          borderRadius: 10,
-                          background: isCurrentLearner ? "#f5fce9" : "#ffffff",
-                          fontSize: 13,
-                        }}
-                      >
-                        <strong>#{entry.rank}</strong>
-                        <div>
-                          <strong>
-                            {entry.display_name}
-                            {isCurrentLearner ? " (you)" : ""}
-                          </strong>
-                          <div style={{ color: "#60728a", marginTop: 3 }}>
-                            🔥 {entry.current_streak} day streak
-                          </div>
-                        </div>
-                        <strong>{entry.total_xp} XP</strong>
-                      </article>
-                    );
-                  })}
-                  {leaderboard.length === 0 && (
-                    <p style={{ color: "#60728a" }}>
-                      No leaderboard entries yet.
-                    </p>
-                  )}
-                </div>
-              </div>
+              <div className="mascot-nudge"><RandomBird /><p><strong>Ready for one more?</strong><span>Your next lesson is waiting.</span></p></div>
             </aside>
           </div>
         </>

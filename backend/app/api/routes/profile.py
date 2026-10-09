@@ -1,5 +1,5 @@
 from calendar import monthrange
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone, tzinfo
 from math import ceil
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -24,11 +24,11 @@ def get_db():
         db.close()
 
 
-def user_timezone(user: User) -> ZoneInfo:
+def user_timezone(user: User) -> tzinfo:
     try:
         return ZoneInfo(user.timezone)
     except (ZoneInfoNotFoundError, ValueError):
-        return ZoneInfo("UTC")
+        return timezone.utc
 
 
 def advance_heart_regeneration(user_stats: UserStats, now: datetime) -> None:
@@ -55,7 +55,7 @@ def advance_heart_regeneration(user_stats: UserStats, now: datetime) -> None:
         user_stats.next_heart_at = next_heart_at + HEART_REFILL_INTERVAL * gained
 
 
-def utc_naive(local_date: date, zone: ZoneInfo) -> datetime:
+def utc_naive(local_date: date, zone: tzinfo) -> datetime:
     """Convert local midnight to naive UTC for SQLite DateTime comparisons."""
     return (
         datetime.combine(local_date, time.min, tzinfo=zone)

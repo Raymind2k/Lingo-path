@@ -1080,3 +1080,120 @@ a {
 .settings-card { margin-top: 26px; padding: 22px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
 .settings-card h2 { margin: 0; }.settings-card p { color: var(--muted); }
 :root[data-theme="dark"] .feedback-incorrect { background: #442a2b; color: #ffaaa5; }
+
+
+/* Course home: a lesson path first, supported by lightweight progress rails. */
+:root { --duo-green: #58cc02; --duo-green-deep: #46a800; --duo-blue: #1cb0f6; }
+:root[data-theme="dark"] {
+  --ink: #f3f7f8; --muted: #afc0c6; --line: #37474f; --surface: #202f36;
+  --page: #131f24; --soft-surface: #1b2b32; --available-surface: #243b2a;
+  --completed-surface: #203b2a; --green: #58cc02; --green-dark: #8be34b;
+}
+body { font-family: "Nunito", "Trebuchet MS", system-ui, sans-serif; }
+.page-shell { max-width: 1920px; grid-template-columns: 250px minmax(500px, 760px) 360px; column-gap: clamp(28px, 4vw, 74px); }
+.primary-nav { border-color: var(--line); background: var(--page); }
+.nav-item { transition: background .18s ease, border-color .18s ease, color .18s ease; }
+.top-bar { border-color: var(--line); }
+.course-header { padding-top: 30px; }
+.course-header h1 { font-size: clamp(32px, 3vw, 42px); }
+.learner-stats-bar .sidebar-stat { border-width: 2px; border-bottom-width: 4px; border-radius: 15px; font-weight: 800; }
+.path-layout { grid-template-columns: minmax(0, 1fr) 360px; align-items: start; gap: 34px; }
+.units { gap: 34px; }
+.course-unit { overflow: hidden; padding: 0 !important; border: 1px solid var(--line); border-radius: 22px; background: var(--surface) !important; box-shadow: 0 5px 0 rgb(0 0 0 / 8%) !important; }
+.unit-banner { display: flex; align-items: center; justify-content: space-between; gap: 20px; min-height: 142px; padding: 24px 28px; background: linear-gradient(115deg, #58cc02, #78df12); color: #fff; }
+.unit-banner .unit-number { margin-bottom: 8px; color: rgb(255 255 255 / 84%); }
+.unit-banner h2 { margin: 0; font-size: clamp(23px, 2vw, 30px); letter-spacing: -.025em; }
+.unit-banner > div > p:last-child { margin: 8px 0 0; color: rgb(255 255 255 / 88%); }
+.unit-banner-stamp { display: grid; width: 72px; height: 72px; flex: 0 0 auto; place-items: center; border: 3px solid rgb(255 255 255 / 60%); border-radius: 19px; background: rgb(255 255 255 / 14%); color: #fff; font-size: 25px; font-weight: 1000; transform: rotate(5deg); }
+.unit-subheading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 22px 30px 0; color: var(--ink); }
+.unit-subheading strong { font-size: 17px; }
+.unit-subheading span { color: var(--muted); font-size: 12px; font-weight: 800; }
+.skills-list.skill-path { width: min(100% - 28px, 560px); gap: 0; margin: 0 auto; padding: 18px 0 34px; }
+.skills-list.skill-path::before { z-index: 0; top: 40px; bottom: 58px; left: 50%; width: 12px; border: 2px solid var(--line); background: var(--soft-surface); }
+.skill-step { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; min-height: 150px; }
+.skill-step::after { position: absolute; z-index: -1; top: 50%; height: 9px; border: 2px solid var(--line); border-radius: 9px; background: var(--soft-surface); content: ""; transform: translateY(-50%); }
+.skill-step-left::after { left: 25%; width: 25%; }
+.skill-step-right::after { left: 50%; width: 25%; }
+.skill-path .skill-card.skill-node { position: relative; display: grid; width: 82px !important; height: 82px; min-height: 82px; place-items: center; justify-self: center; padding: 0; border: 6px solid rgb(255 255 255 / 46%); border-radius: 50%; box-shadow: 0 7px 0 rgb(0 0 0 / 17%); transform: none !important; transition: transform .16s ease, filter .16s ease; }
+.skill-path .skill-card.skill-node:not(:disabled):hover { transform: translateY(-3px) scale(1.04) !important; filter: brightness(1.05); }
+.skill-step-left .skill-node { grid-column: 1; }
+.skill-step-right .skill-node { grid-column: 2; }
+.skill-path .skill-card::after { content: none; }
+.skill-path .skill-icon { display: grid; width: 100%; height: 100%; flex: 0 0 auto; place-items: center; border: 0; border-radius: 50%; background: transparent; box-shadow: none; color: #fff; font-size: 35px; }
+.skill-path .skill-info { display: grid; gap: 5px; min-width: 0; padding: 8px 14px; border-radius: 14px; }
+.skill-step-left .skill-info { grid-column: 2; text-align: left; }
+.skill-step-right .skill-info { grid-column: 1; text-align: right; }
+.skill-info > strong { color: var(--ink); font-size: 16px; }
+.skill-info .skill-progress-copy, .skill-info .lesson-label { color: var(--muted); font-size: 12px; font-weight: 700; }
+.crown-pips { display: flex; gap: 3px; color: var(--line); font-size: 13px; }
+.skill-step-right .crown-pips { justify-content: flex-end; }
+.crown-pips .crown-earned { color: #ffc800; font-style: normal; }
+.skill-path .status-label { position: absolute; top: calc(50% + 42px); left: calc(25% - 41px); width: 82px; margin: 7px 0 0; color: var(--muted); font-size: 9px; font-weight: 900; text-align: center; text-transform: uppercase; }
+.skill-step-right .status-label { right: calc(25% - 41px); left: auto; }
+.skill-path .status-completed .skill-icon { color: #fff; }
+.skill-path .status-locked { opacity: .58; }
+.skill-path .bird-companion { z-index: 2; top: calc(50% - 68px); right: auto; width: 58px; height: 62px; transform: scale(.84); }
+.skill-step-left .bird-companion { left: calc(25% - 29px); }
+.skill-step-right .bird-companion { right: calc(25% - 29px); }
+.home-rail { position: sticky; top: 18px; display: grid; gap: 15px; max-height: calc(100vh - 28px); overflow: auto; padding: 2px 4px 18px; scrollbar-width: thin; }
+.rail-card { padding: 20px; border: 2px solid var(--line); border-radius: 22px; background: var(--surface); }
+.goal-card h2 { margin: 0 0 13px; font-size: 29px; }
+.goal-card h2 span { font-size: 16px; }
+.goal-card progress { width: 100%; height: 12px; accent-color: var(--green); }
+.goal-card > p:last-of-type { margin: 8px 0 0; color: var(--muted); }
+.goal-card .rail-stat { margin-top: 15px; }
+.league-card { background: linear-gradient(145deg, #1a2b33, #1c3039); }
+:root:not([data-theme="dark"]) .league-card { background: #f8fbfc; }
+.league-card-top { display: flex; align-items: center; gap: 10px; }
+.league-card-top > span { font-size: 28px; }
+.league-card-top .eyebrow { margin: 0; }
+.league-card h3 { margin: 12px 0 6px; font-size: 18px; }
+.league-card > p { margin: 0 0 14px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.rail-link { display: flex; align-items: center; justify-content: space-between; color: var(--duo-blue); font-size: 12px; font-weight: 1000; letter-spacing: .04em; }
+.rail-link-small { white-space: nowrap; }
+.quest-rail-card { padding: 20px 16px 14px; }
+.quest-rail-card .quests-heading { align-items: flex-start; margin-bottom: 12px; }
+.quest-rail-card .quests-heading h3 { margin: 4px 0 0; font-size: 17px; }
+.quest-rail-card .quest-list { gap: 2px; }
+.quest-rail-card .quest-card { padding: 12px 4px; border: 0; border-radius: 0; border-bottom: 1px solid var(--line); background: transparent; }
+.quest-rail-card .quest-icon { font-size: 25px; }
+.quest-rail-card .quest-progress-row progress { accent-color: var(--duo-blue); }
+.mascot-nudge { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 16px; background: var(--available-surface); }
+.mascot-nudge .duo-bird { flex: 0 0 54px; transform: scale(.75); transform-origin: left center; }
+.mascot-nudge p { display: grid; gap: 3px; margin: 0; font-size: 13px; }
+.mascot-nudge p span { color: var(--muted); font-size: 12px; }
+.page-shell:has(#lesson) #lesson { grid-column: 2 / 4; width: 100%; max-width: 880px; margin: 0 auto; }
+.page-shell:has(#lesson) .lesson-exercises { width: 100%; max-width: 760px; margin: 24px auto 120px; }
+.page-shell:has(#lesson) .lesson-exercises > .unit-card { border: 0; background: transparent; box-shadow: none; }
+.page-shell:has(#lesson) .feedback-panel { position: fixed; z-index: 20; right: 0; bottom: 0; left: 250px; padding: 22px max(32px, calc((100vw - 1150px) / 2)); border-top: 2px solid var(--line); border-radius: 0; }
+.page-shell:has(#lesson) .feedback-correct { border-color: #58cc02; background: #e5ffd2; color: #2f7900; }
+.page-shell:has(#lesson) .feedback-incorrect { border-color: #ea2b2b; background: #fff1f0; color: #b52a2a; }
+.page-shell:has(#lesson) .feedback-panel p { margin: 6px 0 0; }
+.page-shell:has(#lesson) .feedback-panel + .lesson-back-button { position: fixed; z-index: 21; right: 34px; bottom: 20px; margin: 0 !important; border: 0; background: #58cc02; color: #fff; }
+@media (max-width: 1180px) {
+  .page-shell { grid-template-columns: 210px minmax(0, 1fr) 300px; column-gap: 22px; }
+  .path-layout { grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; }
+  .skill-path .status-label { left: calc(25% - 41px); }
+  .skill-step-right .status-label { right: calc(25% - 41px); left: auto; }
+}
+@media (max-width: 900px) {
+  .home-rail { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: none; overflow: visible; }
+  .path-layout { display: flex; flex-direction: column; }
+  .units, .home-rail { width: 100%; }
+  .page-shell:has(#lesson) .feedback-panel { left: 0; padding: 18px 20px; }
+  .page-shell:has(#lesson) .feedback-panel + .lesson-back-button { right: 18px; bottom: 16px; }
+}
+@media (max-width: 600px) {
+  .home-rail { grid-template-columns: 1fr; }
+  .unit-banner { min-height: 122px; padding: 20px; }
+  .unit-banner-stamp { width: 54px; height: 54px; font-size: 20px; }
+  .unit-subheading { padding-right: 20px; padding-left: 20px; }
+  .skills-list.skill-path { width: calc(100% - 8px); }
+  .skill-step { min-height: 136px; grid-template-columns: 1fr 1fr; }
+  .skill-path .skill-card.skill-node { width: 68px !important; height: 68px; min-height: 68px; }
+  .skill-path .skill-icon { font-size: 29px; }
+  .skill-path .status-label { top: calc(50% + 35px); width: 68px; font-size: 8px; }
+  .skill-info > strong { font-size: 14px; }
+  .skill-info .skill-progress-copy, .skill-info .lesson-label { font-size: 10px; }
+  .page-shell:has(#lesson) .feedback-panel { padding: 16px 18px 72px; }
+}
