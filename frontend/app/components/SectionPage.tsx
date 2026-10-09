@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import PrimaryNavigation, { type AppSection } from "./PrimaryNavigation";
+import { ensureBrowserLearner } from "../browserLearner";
 
 type Achievement = { id: string; title: string; description: string; icon: string; unlocked: boolean };
 type DailyQuest = { id: string; title: string; icon: string; progress: number; target: number; completed: boolean };
@@ -20,6 +21,7 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 const pageTitles: Record<AppSection, string> = { learn: "Learn", practice: "Today’s Review", leaderboards: "Leaderboards", quests: "Quests", shop: "Shop", profile: "Profile", more: "More" };
 
 export default function SectionPage({ section }: { section: Exclude<AppSection, "learn"> }) {
+  const [learnerUsername, setLearnerUsername] = useState<string | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [path, setPath] = useState<LearningPath | null>(null);
@@ -29,24 +31,45 @@ export default function SectionPage({ section }: { section: Exclude<AppSection, 
   const [refilling, setRefilling] = useState(false);
 
   async function reloadProfile() {
-    const response = await fetch(`${API}/profile/demo-learner`);
+    if (!learnerUsername) throw new Error("Learner profile is still loading.");
+    const response = await fetch(`${API}/profile/${learnerUsername}`, { cache: "no-store" });
     if (!response.ok) throw new Error("Profile could not load");
     setProfile(await response.json());
   }
 
   useEffect(() => {
+    let active = true;
     const saved = localStorage.getItem("lingo-path-theme") === "dark";
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDark(saved);
     document.documentElement.dataset.theme = saved ? "dark" : "light";
-    Promise.all([
-      fetch(`${API}/profile/demo-learner`).then((r) => { if (!r.ok) throw new Error("Profile could not load"); return r.json(); }),
-      fetch(`${API}/leaderboard`).then((r) => r.ok ? r.json() : { leaderboard: [] }),
-      fetch(`${API}/path/demo-learner`).then((r) => { if (!r.ok) throw new Error("Learning path could not load"); return r.json(); }),
-    ]).then(([p, l, coursePath]) => {
-      setProfile(p);
-      setEntries((l as LeaderboardResponse).leaderboard ?? []);
-      setPath(coursePath);
-    }).catch((e: unknown) => setError(e instanceof Error ? e.message : "Could not load learner data."));
+    async function loadLearnerData() {
+      try {
+        const username = await ensureBrowserLearner(API);
+        if (!active) return;
+        setLearnerUsername(username);
+        const [profileResponse, leaderboardResponse, pathResponse] = await Promise.all([
+          fetch(`${API}/profile/${username}`, { cache: "no-store" }),
+          fetch(`${API}/leaderboard?username=${encodeURIComponent(username)}`, { cache: "no-store" }),
+          fetch(`${API}/path/${username}`, { cache: "no-store" }),
+        ]);
+        if (!profileResponse.ok) throw new Error("Profile could not load");
+        if (!pathResponse.ok) throw new Error("Learning path could not load");
+        const [p, l, coursePath] = await Promise.all([
+          profileResponse.json(),
+          leaderboardResponse.ok ? leaderboardResponse.json() : Promise.resolve({ leaderboard: [] }),
+          pathResponse.json(),
+        ]);
+        if (!active) return;
+        setProfile(p);
+        setEntries((l as LeaderboardResponse).leaderboard ?? []);
+        setPath(coursePath);
+      } catch (e: unknown) {
+        if (active) setError(e instanceof Error ? e.message : "Could not load learner data.");
+      }
+    }
+    void loadLearnerData();
+    return () => { active = false; };
   }, []);
 
   const toggleTheme = () => {
@@ -56,10 +79,11 @@ export default function SectionPage({ section }: { section: Exclude<AppSection, 
     localStorage.setItem("lingo-path-theme", next ? "dark" : "light");
   };
   async function refillHearts() {
+    if (!learnerUsername) return;
     setRefilling(true);
     setNotice("");
     try {
-      const response = await fetch(`${API}/profile/demo-learner/refill-hearts`, { method: "POST" });
+      const response = await fetch(`${API}/profile/${learnerUsername}/refill-hearts`, { method: "POST" });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail ?? "Could not refill hearts.");
       await reloadProfile();
@@ -124,7 +148,7 @@ export default function SectionPage({ section }: { section: Exclude<AppSection, 
           </>}
 
           {section === "profile" && <>
-            <article className="profile-hero"><div className="profile-avatar">{profile?.display_name?.slice(0, 1) ?? "D"}</div><div><h2>{profile?.display_name ?? "Demo Learner"}</h2><p>@{profile?.username ?? "demo-learner"}</p><span>Learning Spanish</span></div></article>
+            <article className="profile-hero"><div className="profile-avatar">{profile?.display_name?.slice(0, 1) ?? "D"}</div><div><h2>{profile?.display_name ?? "Demo Learner"}</h2><p>{profile?.username.startsWith("browser-") ? "@local-learner" : `@${profile?.username ?? "demo-learner"}`}</p><span>Learning Spanish</span></div></article>
             <h2 className="subsection-title">Statistics</h2><div className="profile-stats-grid"><article><b>🔥 {profile?.current_streak ?? 0}</b><small>Day streak</small></article><article><b>⚡ {profile?.total_xp ?? 0}</b><small>Total XP</small></article><article><b>❤️ {profile?.hearts ?? 0}/{profile?.max_hearts ?? 5}</b><small>Hearts</small></article><article><b>🎯 {xp}/{goal}</b><small>Daily goal XP</small></article><article><b>💎 39</b><small>Mock gems</small></article><article><b>🏅 {monthly?.progress ?? 0}/{monthly?.target ?? 20}</b><small>Monthly quest lessons</small></article></div>
             <h2 className="subsection-title">Achievements</h2><div className="feature-stack">{(profile?.achievements ?? []).map((a) => <article className={`profile-badge${a.unlocked ? " badge-unlocked" : ""}`} key={a.id}><span>{a.icon}</span><span><b>{a.title}</b><small>{a.description}</small></span><small>{a.unlocked ? "Unlocked" : "Locked"}</small></article>)}</div>
           </>}

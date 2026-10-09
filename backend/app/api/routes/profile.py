@@ -1,18 +1,34 @@
 from calendar import monthrange
 from datetime import date, datetime, time, timedelta, timezone, tzinfo
 from math import ceil
+from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from app.db.session import SessionLocal
-from app.models import DailyActivity, ExerciseAttempt, User, UserSkillProgress, UserStats
+from app.models import (
+    Course,
+    DailyActivity,
+    ExerciseAttempt,
+    Skill,
+    Unit,
+    User,
+    UserSkillProgress,
+    UserStats,
+)
 
 
 router = APIRouter(prefix="/profile", tags=["profile"])
 HEART_REFILL_INTERVAL = timedelta(minutes=30)
+
+
+class BrowserLearnerBootstrap(BaseModel):
+    browser_id: UUID
 
 
 def get_db():
@@ -197,6 +213,55 @@ def get_profile_data(username: str, db: Session):
         "monthly_quest": monthly_quest,
         "achievements": achievements,
     }
+
+
+@router.post("/bootstrap")
+def bootstrap_browser_learner(
+    request: BrowserLearnerBootstrap,
+    db: Session = Depends(get_db),
+):
+    """Create or resolve the anonymous learner saved by one browser profile."""
+    username = f"browser-{request.browser_id.hex}"
+    user = db.scalar(select(User).where(User.username == username))
+    if user is not None:
+        return {"username": username}
+
+    course = db.scalar(select(Course).where(Course.slug == "spanish-foundations"))
+    if course is None:
+        raise HTTPException(status_code=503, detail="Course content has not been seeded")
+
+    skills = db.scalars(
+        select(Skill)
+        .join(Unit)
+        .where(Unit.course_id == course.id)
+        .order_by(Unit.position, Skill.position)
+    ).all()
+    if not skills:
+        raise HTTPException(status_code=503, detail="Course skills have not been seeded")
+
+    user = User(username=username, display_name="Demo Learner", timezone="UTC")
+    user.stats = UserStats()
+    db.add(user)
+    try:
+        db.flush()
+        db.add_all(
+            UserSkillProgress(
+                user_id=user.id,
+                skill_id=skill.id,
+                status="available" if index == 0 else "locked",
+                crowns=0,
+            )
+            for index, skill in enumerate(skills)
+        )
+        db.commit()
+    except IntegrityError:
+        # Two tabs in the same browser can initialize together. The unique
+        # username makes creation idempotent; the losing request reuses the row.
+        db.rollback()
+        if db.scalar(select(User.id).where(User.username == username)) is None:
+            raise
+
+    return {"username": username}
 
 
 @router.get("/{username}")

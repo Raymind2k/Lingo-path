@@ -2,13 +2,14 @@
 
 Lingo Path is a full-stack, Duolingo-inspired language-learning app. It teaches Spanish from English through a winding skill path, short lessons, and saved learner progress. The repository includes a Next.js frontend and a FastAPI backend backed by SQLite.
 
-> **Demo learner:** `demo-learner` · **Course:** Spanish Foundations (English → Spanish) · **Hosted demo:** Not configured yet; follow the local setup below to run the app.
+> **Course:** Spanish Foundations (English → Spanish) · **Hosted demo:** Not configured yet; follow the local setup below to run the app.
 
 ## Features
 
 - **Learning path:** Seven units with ten skill nodes per unit. Nodes show locked, available, and completed states; completing skills advances progress and unlocks rewards.
 - **Varied lessons:** Multiple choice, typed translation, word bank, matching, and fill-in-the-blank exercises. Lessons rotate exercise order so consecutive nodes do not always start with the same format.
 - **Feedback and progress:** Immediate answer feedback, accent correction for Spanish answers, hearts and recovery, lesson XP, daily goal, streaks, quests, achievements, and a seeded leaderboard.
+- **Browser-specific progress:** A new browser profile receives its own fresh learner. Reopening the app in that browser resumes its saved progress; another browser on the same computer starts separately.
 - **Reward and account pages:** Learn, Practice, Leaderboards, Quests, Shop, Profile, and More/settings pages share the app navigation.
 - **Responsive UI:** Desktop, tablet, and mobile layouts, with mobile navigation and responsive lesson controls.
 - **Theme preference:** Light/dark theme preference is saved in the browser.
@@ -49,7 +50,7 @@ Browser
           SQLite (backend/lingo_path.db)
 ```
 
-The frontend uses the Next.js App Router. The main Learn path and lesson player live in `frontend/app/page.tsx`; shared navigation and the secondary sections are in `frontend/app/components/` and the route folders. FastAPI mounts the path, lesson, profile, and leaderboard routers in `backend/app/main.py`. The frontend calls the backend directly over JSON HTTP; there is no separate authentication service.
+The frontend uses the Next.js App Router. The main Learn path and lesson player live in `frontend/app/page.tsx`; shared navigation and the secondary sections are in `frontend/app/components/` and the route folders. FastAPI mounts the path, lesson, profile, and leaderboard routers in `backend/app/main.py`. The frontend calls the backend directly over JSON HTTP; there is no separate authentication service. On first visit, the browser saves a random browser ID in local storage and calls `POST /profile/bootstrap`. The API uses that ID to create or retrieve the matching anonymous learner row, so learner progress is stored in SQLite but scoped to that browser profile.
 
 ## Database schema
 
@@ -207,17 +208,33 @@ For a deployment, set `NEXT_PUBLIC_API_URL` to the reachable API URL and configu
 
 ## API overview
 
-All endpoints return JSON. The demo learner username is `demo-learner`.
+All endpoints return JSON. The `demo-learner` row is created by the seed script; browser sessions use a generated username returned by `/profile/bootstrap`.
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
 | `GET` | `/health` | API health check. |
+| `POST` | `/profile/bootstrap` | Create or retrieve the anonymous learner for a browser ID. |
 | `GET` | `/path/{username}` | Course units, skills, lessons, and learner progress. |
 | `GET` | `/lessons/{lesson_id}?username={username}` | Load a lesson and its exercises. |
 | `POST` | `/lessons/{lesson_id}/answer` | Submit an exercise answer and update attempt/progress data. |
 | `GET` | `/profile/{username}` | Load learner stats, hearts, daily activity, quests, and achievements. |
 | `POST` | `/profile/{username}/refill-hearts` | Use the demo heart refill flow. |
-| `GET` | `/leaderboard` | Return seeded leaderboard entries. |
+| `GET` | `/leaderboard?username={username}` | Return seeded competitors and the current learner, ranked by XP. |
+
+Example browser bootstrap request:
+
+```http
+POST /profile/bootstrap
+Content-Type: application/json
+```
+
+```json
+{
+  "browser_id": "550e8400-e29b-41d4-a716-446655440000"
+}
+```
+
+The response contains a generated `username`. Use it in subsequent path, profile, lesson, answer, and heart-refill requests.
 
 Example answer request:
 
@@ -228,7 +245,7 @@ Content-Type: application/json
 
 ```json
 {
-  "username": "demo-learner",
+  "username": "browser-550e8400e29b41d4a716446655440000",
   "exercise_id": 1,
   "answer": "Hola"
 }
@@ -236,7 +253,7 @@ Content-Type: application/json
 
 ## Assumptions and demo limitations
 
-- The app uses one default learner (`demo-learner`); authentication, registration, and account switching are not implemented.
+- The app uses anonymous, browser-scoped learner IDs; authentication, registration, and account switching are not implemented. Clearing that browser's local storage creates a new learner on its next visit. Progress is not shared between browsers or synced across devices.
 - Spanish-from-English is the only seeded course. Lesson content is sample curriculum data stored in the database.
 - Leaderboard ranks are seeded examples, not a multi-user live competition.
 - Shop subscriptions and purchases are presentation placeholders. Gems and unit-chest claim state are demo mechanics stored in browser local storage.

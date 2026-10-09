@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.db.session import SessionLocal
@@ -21,10 +21,11 @@ def get_db():
 @router.get("")
 def get_leaderboard(
     limit: int = Query(default=10, ge=1, le=50),
+    username: str | None = Query(default=None, min_length=1, max_length=50),
     db: Session = Depends(get_db),
 ):
-    """Return learners ranked by total XP, with streaks as a tiebreaker."""
-    rows = db.execute(
+    """Return seeded competitors and, when provided, the active learner."""
+    statement = (
         select(User, UserStats)
         .join(UserStats, UserStats.user_id == User.id)
         .order_by(
@@ -33,7 +34,14 @@ def get_leaderboard(
             User.display_name.asc(),
         )
         .limit(limit)
-    ).all()
+    )
+
+    if username:
+        statement = statement.where(
+            or_(User.username.like("leaderboard-%"), User.username == username)
+        )
+
+    rows = db.execute(statement).all()
 
     leaderboard = [
         {

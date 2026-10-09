@@ -1,7 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import PrimaryNavigation from "./components/PrimaryNavigation";
+import { ensureBrowserLearner } from "./browserLearner";
 
 type LessonSummary = {
   id: number;
@@ -67,18 +69,6 @@ type Profile = {
   daily_quests: DailyQuest[];
   monthly_quest: { title: string; progress: number; target: number; completed: boolean; days_remaining: number };
   achievements?: Achievement[];
-};
-
-type LeaderboardEntry = {
-  rank: number;
-  username: string;
-  display_name: string;
-  total_xp: number;
-  current_streak: number;
-};
-
-type LeaderboardResponse = {
-  leaderboard: LeaderboardEntry[];
 };
 
 type Exercise = {
@@ -308,9 +298,9 @@ function getChoiceIllustration(choice: string): string {
 
 export default function Home() {
   const [darkMode, setDarkMode] = useState(false);
+  const [learnerUsername, setLearnerUsername] = useState<string | null>(null);
   const [path, setPath] = useState<LearningPath | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [pageError, setPageError] = useState<string | null>(null);
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -338,33 +328,43 @@ export default function Home() {
     useState<AnswerFeedback | null>(null);
   const [lessonReaction, setLessonReaction] = useState<string | null>(null);
 
-  const refreshDashboard = useCallback(async () => {
-    const [pathData, profileData, leaderboardData] = await Promise.all([
-      getJson<LearningPath>(`${API_URL}/path/demo-learner`),
-      getJson<Profile>(`${API_URL}/profile/demo-learner`),
-      getJson<LeaderboardResponse>(`${API_URL}/leaderboard`),
+  const refreshDashboard = useCallback(async (username: string) => {
+    const [pathData, profileData] = await Promise.all([
+      getJson<LearningPath>(`${API_URL}/path/${username}`),
+      getJson<Profile>(`${API_URL}/profile/${username}`),
     ]);
 
     setPath(pathData);
     setProfile(profileData);
-    setLeaderboard(leaderboardData.leaderboard ?? []);
+    if (profileData.hearts > 0) setOutOfHearts(false);
   }, []);
 
   useEffect(() => {
-    refreshDashboard()
-      .then(() => {
+    let active = true;
+    async function initializeBrowserLearner() {
+      try {
+        const username = await ensureBrowserLearner(API_URL);
+        if (!active) return;
+        setLearnerUsername(username);
+        await refreshDashboard(username);
+        if (!active) return;
         const lessonId = Number(new URLSearchParams(window.location.search).get("lesson_id"));
-        if (Number.isInteger(lessonId) && lessonId > 0) openLesson(lessonId);
-      })
-      .catch((error: unknown) => {
+        if (Number.isInteger(lessonId) && lessonId > 0) await openLesson(lessonId, username);
+      } catch (error: unknown) {
+        if (!active) return;
         setPageError(error instanceof Error ? error.message : "Could not load your course.");
-      });
+      }
+    }
+
+    void initializeBrowserLearner();
+    return () => { active = false; };
     // Read the initial route query once, without restarting a lesson on state changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshDashboard]);
 
   useEffect(() => {
-    if (!path || lesson) return;
+    const units = path?.course.units;
+    if (!units || lesson) return;
 
     const dividers = Array.from(
       document.querySelectorAll<HTMLElement>(".unit-topic-divider[data-unit-id]"),
@@ -408,32 +408,40 @@ export default function Home() {
   useEffect(() => {
     try {
       const storedGems = Number(window.localStorage.getItem("lingo-path-gems"));
-      if (Number.isFinite(storedGems) && storedGems >= 39) setGems(storedGems);
+      if (Number.isFinite(storedGems) && storedGems >= 39) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setGems(storedGems);
+      }
       const storedChests = window.localStorage.getItem("lingo-path-chests");
-      if (storedChests) setClaimedChests(JSON.parse(storedChests) as Record<number, boolean>);
+      if (storedChests) {
+        setClaimedChests(JSON.parse(storedChests) as Record<number, boolean>);
+      }
     } catch {
       // A malformed local demo save should not stop the learning path from loading.
     }
   }, []);
 
-  useEffect(() => {
+useEffect(() => {
   const savedTheme = window.localStorage.getItem("lingo-path-theme");
   const useDarkMode = savedTheme !== "light";
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   setDarkMode(useDarkMode);
   document.documentElement.dataset.theme = useDarkMode ? "dark" : "light";
 }, []);
 
   useEffect(() => {
+    if (!learnerUsername) return;
     const refreshTimer = window.setInterval(() => {
-      getJson<Profile>(`${API_URL}/profile/demo-learner`).then(setProfile).catch(() => undefined);
+      getJson<Profile>(`${API_URL}/profile/${learnerUsername}`)
+        .then((nextProfile) => {
+          setProfile(nextProfile);
+          if (nextProfile.hearts > 0) setOutOfHearts(false);
+        })
+        .catch(() => undefined);
     }, 30_000);
     return () => window.clearInterval(refreshTimer);
-  }, []);
-
-  useEffect(() => {
-    if (outOfHearts && profile && profile.hearts > 0) setOutOfHearts(false);
-  }, [outOfHearts, profile]);
+  }, [learnerUsername]);
 
   function openUnitChest(unitId: number, unitTitle: string) {
     const unit = path?.course.units.find((item) => item.id === unitId);
@@ -447,7 +455,8 @@ export default function Home() {
     window.localStorage.setItem("lingo-path-gems", String(nextGems));
   }
 
-  async function openLesson(lessonId: number) {
+  async function openLesson(lessonId: number, username = learnerUsername) {
+    if (!username) return;
     setLesson(null);
     setLessonError(null);
     setLessonLoading(true);
@@ -459,7 +468,7 @@ export default function Home() {
 
     try {
       const lessonData = await getJson<Lesson>(
-        `${API_URL}/lessons/${lessonId}?username=demo-learner`,
+        `${API_URL}/lessons/${lessonId}?username=${encodeURIComponent(username)}`,
       );
       setLesson(lessonData);
     } catch (error) {
@@ -482,13 +491,14 @@ export default function Home() {
   }
 
   async function refillHearts() {
+    if (!learnerUsername) return;
     setRefillingHearts(true);
     setLessonError(null);
     try {
-      const response = await fetch(`${API_URL}/profile/demo-learner/refill-hearts`, { method: "POST" });
+      const response = await fetch(`${API_URL}/profile/${learnerUsername}/refill-hearts`, { method: "POST" });
       const result = await response.json();
       if (!response.ok) throw new Error(result.detail ?? "Could not refill hearts.");
-      await refreshDashboard();
+      await refreshDashboard(learnerUsername);
       setOutOfHearts(false);
       setAnswerFeedback(null);
     } catch (error) {
@@ -597,6 +607,10 @@ export default function Home() {
 
   async function submitAnswer() {
     if (!lesson) return;
+    if (!learnerUsername) {
+      setLessonError("Your learner profile is still loading. Try again in a moment.");
+      return;
+    }
 
     const exercise = lesson.exercises[currentExerciseIndex];
     if (!exercise) return;
@@ -639,7 +653,7 @@ export default function Home() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username: "demo-learner",
+          username: learnerUsername,
           exercise_id: exercise.id,
           answer,
         }),
@@ -660,7 +674,7 @@ export default function Home() {
       }
       if (feedback.hearts_remaining <= 0) setOutOfHearts(true);
 
-      await refreshDashboard();
+      await refreshDashboard(learnerUsername);
 
       if (
         feedback.correct &&
@@ -747,10 +761,10 @@ export default function Home() {
     <main className="page-shell">
       <PrimaryNavigation activePage="learn" />
       <header className="top-bar">
-        <a className="brand" href="/">
+        <Link className="brand" href="/">
           <span className="brand-mark">L</span>
           Lingo Path
-        </a>
+        </Link>
         <div className="header-actions">
           <div className="learner-label">
             <strong>{path.learner.display_name}</strong>
@@ -1170,7 +1184,7 @@ export default function Home() {
                 <div className="league-card-top"><span aria-hidden="true">🏆</span><p className="eyebrow">LEADERBOARDS</p></div>
                 <h3>{profile.current_streak > 0 ? "Keep your place this week" : "Your league starts here"}</h3>
                 <p>Complete a lesson to climb the weekly leaderboard.</p>
-                <a className="rail-link" href="/leaderboards">GO TO LEADERBOARDS <span aria-hidden="true">→</span></a>
+                <Link className="rail-link" href="/leaderboards">GO TO LEADERBOARDS <span aria-hidden="true">→</span></Link>
               </section>
 
               <section className="rail-card quest-rail-card" aria-labelledby="daily-quests-title">
