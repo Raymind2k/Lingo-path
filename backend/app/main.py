@@ -1,6 +1,7 @@
 ﻿from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes.leaderboard import router as leaderboard_router
 from app.api.routes.lessons import router as lessons_router
 from app.api.routes.path import router as path_router
 from app.api.routes.profile import router as profile_router
@@ -23,6 +24,7 @@ app.add_middleware(
 app.include_router(path_router)
 app.include_router(lessons_router)
 app.include_router(profile_router)
+app.include_router(leaderboard_router)
 
 
 @app.get("/health", tags=["health"])

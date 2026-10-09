@@ -42,6 +42,14 @@ type LearningPath = {
   };
 };
 
+type Achievement = {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+};
+
 type Profile = {
   username: string;
   display_name: string;
@@ -53,6 +61,19 @@ type Profile = {
   daily_xp_goal: number;
   today_xp: number;
   daily_goal_met: boolean;
+  achievements?: Achievement[];
+};
+
+type LeaderboardEntry = {
+  rank: number;
+  username: string;
+  display_name: string;
+  total_xp: number;
+  current_streak: number;
+};
+
+type LeaderboardResponse = {
+  leaderboard: LeaderboardEntry[];
 };
 
 type Exercise = {
@@ -102,6 +123,7 @@ async function getJson<T>(url: string): Promise<T> {
 export default function Home() {
   const [path, setPath] = useState<LearningPath | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [pageError, setPageError] = useState<string | null>(null);
 
   const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -123,13 +145,15 @@ export default function Home() {
     useState<AnswerFeedback | null>(null);
 
   const refreshDashboard = useCallback(async () => {
-    const [pathData, profileData] = await Promise.all([
+    const [pathData, profileData, leaderboardData] = await Promise.all([
       getJson<LearningPath>(`${API_URL}/path/demo-learner`),
       getJson<Profile>(`${API_URL}/profile/demo-learner`),
+      getJson<LeaderboardResponse>(`${API_URL}/leaderboard`),
     ]);
 
     setPath(pathData);
     setProfile(profileData);
+    setLeaderboard(leaderboardData.leaderboard ?? []);
   }, []);
 
   useEffect(() => {
@@ -206,6 +230,69 @@ export default function Home() {
       : [];
   }
 
+  function getSpeechLanguage(language: string): string {
+    const normalizedLanguage = language.toLowerCase();
+
+    if (normalizedLanguage.includes("spanish")) return "es-ES";
+    if (normalizedLanguage.includes("french")) return "fr-FR";
+    if (normalizedLanguage.includes("german")) return "de-DE";
+    if (normalizedLanguage.includes("italian")) return "it-IT";
+    if (normalizedLanguage.includes("portuguese")) return "pt-PT";
+    if (normalizedLanguage.includes("english")) return "en-US";
+
+    return "es-ES";
+  }
+
+  function getCurrentAnswerForSpeech(exercise: Exercise): string {
+    if (exercise.exercise_type === "word_bank") {
+      const words = getWordBankWords(exercise);
+      return selectedWordIndexes.map((index) => words[index]).join(" ");
+    }
+
+    if (exercise.exercise_type === "matching") {
+      return getMatchingPairs(exercise)
+        .map((pair) => pair.left)
+        .join(". ");
+    }
+
+    const rawChoices = exercise.config.choices;
+    const choices = Array.isArray(rawChoices)
+      ? rawChoices.filter(
+          (choice): choice is string => typeof choice === "string",
+        )
+      : [];
+
+    if (choices.length > 0) {
+      return selectedChoice;
+    }
+
+    return typedAnswer;
+  }
+
+  function speakText(text: string, language: string) {
+    if (!text.trim()) {
+      setLessonError("Choose or type an answer before playing its audio.");
+      return;
+    }
+
+    if (
+      typeof window === "undefined" ||
+      !("speechSynthesis" in window) ||
+      typeof SpeechSynthesisUtterance === "undefined"
+    ) {
+      setLessonError("Audio playback is not supported in this browser.");
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = getSpeechLanguage(language);
+    utterance.rate = 0.9;
+
+    window.speechSynthesis.speak(utterance);
+  }
+
   async function submitAnswer() {
     if (!lesson) return;
 
@@ -220,7 +307,10 @@ export default function Home() {
     } else if (exercise.exercise_type === "matching") {
       const pairs = getMatchingPairs(exercise);
 
-      if (pairs.length === 0 || pairs.some((pair) => !matchingAnswers[pair.left])) {
+      if (
+        pairs.length === 0 ||
+        pairs.some((pair) => !matchingAnswers[pair.left])
+      ) {
         setLessonError("Choose a match for every item before checking.");
         return;
       }
@@ -241,20 +331,17 @@ export default function Home() {
     setSubmitting(true);
 
     try {
-      const response = await fetch(
-        `${API_URL}/lessons/${lesson.id}/answer`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username: "demo-learner",
-            exercise_id: exercise.id,
-            answer,
-          }),
+      const response = await fetch(`${API_URL}/lessons/${lesson.id}/answer`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({
+          username: "demo-learner",
+          exercise_id: exercise.id,
+          answer,
+        }),
+      });
 
       const result = await response.json();
 
@@ -313,11 +400,6 @@ export default function Home() {
     );
   }
 
-  const dailyGoalPercent =
-    profile.daily_xp_goal > 0
-      ? Math.min(100, (profile.today_xp / profile.daily_xp_goal) * 100)
-      : 100;
-
   const currentExercise = lesson?.exercises[currentExerciseIndex];
   const currentWords = currentExercise
     ? getWordBankWords(currentExercise)
@@ -334,6 +416,9 @@ export default function Home() {
         (choice): choice is string => typeof choice === "string",
       )
     : [];
+  const currentSpeechText = currentExercise
+    ? getCurrentAnswerForSpeech(currentExercise)
+    : "";
 
   return (
     <main className="page-shell">
@@ -450,7 +535,9 @@ export default function Home() {
                             key={`${wordIndex}-${position}`}
                             onClick={() =>
                               setSelectedWordIndexes((previous) =>
-                                previous.filter((_, index) => index !== position),
+                                previous.filter(
+                                  (_, index) => index !== position,
+                                ),
                               )
                             }
                             type="button"
@@ -462,7 +549,8 @@ export default function Home() {
 
                       <div className="exercise-choices" aria-label="Word bank">
                         {currentWords.map((word, index) => {
-                          const isSelected = selectedWordIndexes.includes(index);
+                          const isSelected =
+                            selectedWordIndexes.includes(index);
 
                           return (
                             <button
@@ -553,6 +641,22 @@ export default function Home() {
                       placeholder="Type your answer"
                       value={typedAnswer}
                     />
+                  )}
+
+                  {currentSpeechText.trim() && (
+                    <button
+                      className="lesson-back-button"
+                      onClick={() =>
+                        speakText(
+                          currentSpeechText,
+                          path.course.target_language,
+                        )
+                      }
+                      style={{ marginTop: 16 }}
+                      type="button"
+                    >
+                      🔊 Listen to my answer
+                    </button>
                   )}
 
                   <button
@@ -701,7 +805,8 @@ export default function Home() {
             <aside className="sidebar-card">
               <p className="eyebrow">DAILY GOAL</p>
               <h2>
-                {Math.min(profile.today_xp, profile.daily_xp_goal)} / {profile.daily_xp_goal} XP
+                {Math.min(profile.today_xp, profile.daily_xp_goal)} /{" "}
+                {profile.daily_xp_goal} XP
               </h2>
               <progress
                 aria-label="Daily XP goal progress"
@@ -721,6 +826,88 @@ export default function Home() {
               <div className="sidebar-stat">
                 <span>Course units</span>
                 <strong>{path.course.units.length}</strong>
+              </div>
+
+              <div style={{ marginTop: 24 }}>
+                <p className="eyebrow">ACHIEVEMENTS</p>
+                <div style={{ display: "grid", gap: 10 }}>
+                  {(profile.achievements ?? []).map((achievement) => (
+                    <article
+                      key={achievement.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 12,
+                        padding: 12,
+                        border: "1px solid #e2e8f0",
+                        borderRadius: 12,
+                        background: achievement.unlocked
+                          ? "#f5fce9"
+                          : "#f8fafc",
+                        opacity: achievement.unlocked ? 1 : 0.6,
+                      }}
+                    >
+                      <span aria-hidden="true" style={{ fontSize: 24 }}>
+                        {achievement.icon}
+                      </span>
+                      <div>
+                        <strong>{achievement.title}</strong>
+                        <p style={{ margin: "4px 0", color: "#60728a" }}>
+                          {achievement.description}
+                        </p>
+                        <small>
+                          {achievement.unlocked
+                            ? "Unlocked"
+                            : "Not unlocked yet"}
+                        </small>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginTop: 24 }}>
+                <p className="eyebrow">LEADERBOARD</p>
+                <div style={{ display: "grid", gap: 8 }}>
+                  {leaderboard.map((entry) => {
+                    const isCurrentLearner =
+                      entry.username === profile.username;
+
+                    return (
+                      <article
+                        key={entry.username}
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "32px 1fr auto",
+                          alignItems: "center",
+                          gap: 8,
+                          padding: 10,
+                          border: "1px solid #e2e8f0",
+                          borderRadius: 10,
+                          background: isCurrentLearner ? "#f5fce9" : "#ffffff",
+                          fontSize: 13,
+                        }}
+                      >
+                        <strong>#{entry.rank}</strong>
+                        <div>
+                          <strong>
+                            {entry.display_name}
+                            {isCurrentLearner ? " (you)" : ""}
+                          </strong>
+                          <div style={{ color: "#60728a", marginTop: 3 }}>
+                            🔥 {entry.current_streak} day streak
+                          </div>
+                        </div>
+                        <strong>{entry.total_xp} XP</strong>
+                      </article>
+                    );
+                  })}
+                  {leaderboard.length === 0 && (
+                    <p style={{ color: "#60728a" }}>
+                      No leaderboard entries yet.
+                    </p>
+                  )}
+                </div>
               </div>
             </aside>
           </div>
